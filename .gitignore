@@ -2,3 +2,28 @@ ImplementationPlan.md
 OpenSpec.md
 ProjectState.md
 
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Node modules
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build output
+dist/
+build/
+
