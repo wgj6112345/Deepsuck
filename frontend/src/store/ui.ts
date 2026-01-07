@@ -45,6 +45,7 @@ export const useUIStore = defineStore('ui', () => {
     setThinkingEnabled,
     toggleSidebar,
     setSidebarOpen,
+    loadSidebarOpen,
     loadThinkingEnabled
   }
 })

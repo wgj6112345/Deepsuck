@@ -271,8 +271,8 @@ const groupedConversations = computed(() => {
   // 移除空分组
   const result: Record<string, Conversation[]> = {}
   Object.keys(groups).forEach(key => {
-    if (groups[key].length > 0) {
-      result[key] = groups[key]
+    if (groups[key as keyof typeof groups].length > 0) {
+      result[key] = groups[key]!
     }
   })
 
