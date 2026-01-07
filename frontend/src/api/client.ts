@@ -30,22 +30,11 @@ client.interceptors.response.use(
     if (error.response) {
       // 服务器返回错误
       const status = error.response.status
-      switch (status) {
-        case 402:
-          console.error('Token 欠费，请检查配置')
-          break
-        case 500:
-          console.error('服务器内部错误')
-          break
-        default:
-          console.error(`请求失败: ${status}`)
-      }
+      // Handle different error statuses
     } else if (error.request) {
       // 请求已发送但无响应
-      console.error('网络异常，请检查网络连接')
     } else {
       // 请求配置错误
-      console.error('请求配置错误:', error.message)
     }
     return Promise.reject(error)
   }

@@ -99,7 +99,7 @@ async function loadConfig() {
     const data = await configAPI.getConfig()
     config.value = data
   } catch (error) {
-    console.error('Failed to load config:', error)
+    // Error loading config
   } finally {
     loading.value = false
   }
@@ -112,7 +112,6 @@ async function handleSave() {
     configStore.setConfig(config.value)
     alert('配置已保存')
   } catch (error) {
-    console.error('Failed to save config:', error)
     alert('保存失败，请重试')
   } finally {
     loading.value = false

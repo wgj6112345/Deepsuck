@@ -80,22 +80,10 @@ export async function* streamChat(request: ChatRequest, signal?: AbortSignal): A
         try {
           eventData = JSON.parse(eventDataJSON)
         } catch (e) {
-          console.error('Failed to parse SSE data JSON:', e)
-          console.error('JSON string:', eventDataJSON)
           // 如果解析失败，直接使用原始字符串
           eventData = eventDataJSON
         }
 
-        console.log(`SSE Event: ${eventType}`)
-        console.log(`Data (JSON): "${eventDataJSON}"`)
-        console.log(`Data (Parsed): "${eventData.replace(/\n/g, '\\n')}"`)
-        console.log(`Data Chars:`, Array.from(eventData).map(c => {
-          if (c === '\n') return '\\n';
-          if (c === '\r') return '\\r';
-          if (c === '\t') return '\\t';
-          return c;
-        }).join(''))
-        
         yield { event: eventType as SSEEvent['event'], data: eventData }
       }
     }

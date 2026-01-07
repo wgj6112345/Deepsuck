@@ -341,7 +341,6 @@ async function saveRename(convId: string) {
         conv.title = editingTitle.value.trim()
       }
     } catch (error) {
-      console.error('Failed to rename conversation:', error)
       alert('重命名失败')
     }
   }
@@ -359,7 +358,6 @@ async function handlePin(convId: string) {
       conv.pinned = updatedConv.pinned
     }
   } catch (error) {
-    console.error('Failed to toggle pin:', error)
     alert('置顶失败')
   }
 }

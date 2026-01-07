@@ -85,7 +85,7 @@ async function loadConversations() {
     const conversations = await conversationAPI.getConversations()
     conversationStore.setConversations(conversations)
   } catch (error) {
-    console.error('Failed to load conversations:', error)
+    // Error loading conversations
   } finally {
     conversationStore.setLoading(false)
   }
@@ -104,7 +104,7 @@ async function handleNewChat() {
     // 保存当前对话ID到 localStorage
     localStorage.setItem('currentConversationId', newConv.id)
   } catch (error) {
-    console.error('Failed to create conversation:', error)
+    // Error creating conversation
   }
 }
 
@@ -138,7 +138,7 @@ async function handleDeleteConversation(id: string) {
       localStorage.removeItem('currentConversationId')
     }
   } catch (error) {
-    console.error('Failed to delete conversation:', error)
+    // Error deleting conversation
   }
 }
 
@@ -151,8 +151,6 @@ async function handleSendMessage(content: string) {
   loading.value = true
   abortController = new AbortController()
   const convId = currentConversation.value.id
-
-  console.log('Sending message:', { convId, content, thinkingEnabled: uiStore.thinkingEnabled })
 
   // 创建临时用户消息
   const userMsg: any = {
@@ -184,28 +182,12 @@ async function handleSendMessage(content: string) {
       content,
       thinkingEnabled: uiStore.thinkingEnabled
     }, abortController.signal)) {
-      console.log('Received event:', event)
-      
       if (event.event === 'thinking') {
         conversationStore.updateMessage(convId, assistantMsg.id, {
           thinking: assistantMsg.thinking + event.data
         })
         assistantMsg.thinking += event.data
       } else if (event.event === 'content') {
-        // 调试：打印原始内容，查看是否有换行符
-        console.log('=== Content Debug ===')
-        console.log('Raw data:', JSON.stringify(event.data))
-        console.log('Data length:', event.data.length)
-        console.log('Data with newlines:', event.data.replace(/\n/g, '\\n'))
-        console.log('Data with special chars:', Array.from(event.data).map(c => {
-          if (c === '\n') return '\\n';
-          if (c === '\r') return '\\r';
-          if (c === '\t') return '\\t';
-          if (c === ' ') return ' ';
-          return c;
-        }).join(''))
-        console.log('====================')
-        
         conversationStore.updateMessage(convId, assistantMsg.id, {
           content: assistantMsg.content + event.data
         })
@@ -214,21 +196,17 @@ async function handleSendMessage(content: string) {
         conversationStore.updateMessage(convId, assistantMsg.id, {
           id: event.data
         })
-        console.log('Chat completed')
       } else if (event.event === 'title_update') {
         // 更新对话标题
         conversationStore.updateConversationTitle(convId, event.data)
-        console.log('Title updated:', event.data)
       } else if (event.event === 'error') {
-        console.error('Chat error:', event.data)
         alert('发送失败: ' + event.data)
       }
     }
   } catch (error: any) {
     if (error.name === 'AbortError') {
-      console.log('Chat stopped by user')
+      // Chat stopped by user
     } else {
-      console.error('Failed to send message:', error)
       alert('发送失败，请检查网络和配置')
     }
   } finally {
@@ -283,47 +261,6 @@ function handleToggleSidebar() {
 
 .chat-main.sidebar-closed {
   padding-left: 56px;
-}
-
-/* 收起/展开侧边栏按钮 */
-.toggle-sidebar-btn {
-  position: fixed;
-  left: 16px;
-  top: 20px;
-  width: 40px;
-  height: 40px;
-  background-color: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 8px;
-  color: #6B7280;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  z-index: 1000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.toggle-sidebar-btn:hover {
-  background-color: #F3F4F6;
-  color: #1F2937;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.toggle-sidebar-btn:active {
-  transform: scale(0.95);
-}
-
-.toggle-sidebar-btn svg {
-  width: 20px;
-  height: 20px;
-}
-
-/* 侧边栏展开时，按钮移动到侧边栏右边缘 */
-.toggle-sidebar-btn.expanded {
-  left: 264px; /* 280px - 16px */
 }
 
 .chat-main.empty-state .message-list {
