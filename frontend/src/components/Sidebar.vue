@@ -494,7 +494,7 @@ function confirmDelete() {
 .header-action-btn {
   width: 32px;
   height: 32px;
-  background-color: #F9FAFB;
+  background-color: transparent;
   border: none;
   border-radius: 6px;
   color: #6B7280;
@@ -507,7 +507,6 @@ function confirmDelete() {
 }
 
 .header-action-btn:hover {
-  background-color: #F3F4F6;
   color: #1F2937;
 }
 
