@@ -268,6 +268,6 @@ function handleToggleSidebar() {
 
 .chat-main.empty-state .chat-input-container {
   flex: 0 0 auto;
-  margin-bottom: 40px;
+  margin-bottom: 80px;
 }
 </style>
