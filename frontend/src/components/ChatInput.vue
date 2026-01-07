@@ -5,7 +5,6 @@
         v-model="inputContent"
         placeholder="给 DeepSeek 发送消息"
         class="input-field"
-        :disabled="disabled"
         @keydown.enter.prevent="handleEnter"
         rows="1"
         ref="textareaRef"
@@ -93,7 +92,12 @@ function handleEnter(event: KeyboardEvent) {
 
 function handleClick() {
   if (props.disabled) {
+    // 如果正在输出，先停止
     emit('stop')
+    // 如果有输入内容，停止后发送新消息
+    if (canSend.value) {
+      setTimeout(() => handleSend(), 100)
+    }
   } else if (canSend.value) {
     handleSend()
   }
