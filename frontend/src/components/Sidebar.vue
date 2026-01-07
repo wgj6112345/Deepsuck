@@ -1,4 +1,17 @@
 <template>
+  <!-- 展开按钮（侧边栏收起时显示） -->
+  <button
+    v-if="!open"
+    class="expand-sidebar-btn"
+    @click="handleToggleSidebar"
+    title="展开边栏"
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="13 7 18 12 13 17"/>
+      <polyline points="6 7 11 12 6 17"/>
+    </svg>
+  </button>
+
   <div class="sidebar" :class="{ closed: !open }">
     <!-- 品牌区域 -->
     <div class="sidebar-header">
@@ -11,15 +24,11 @@
       <button
         class="toggle-sidebar-btn"
         @click="handleToggleSidebar"
-        :title="open ? '收起边栏' : '展开边栏'"
+        title="收起边栏"
       >
-        <svg v-if="open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="11 17 6 12 11 7"/>
           <polyline points="18 17 13 12 18 7"/>
-        </svg>
-        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="13 7 18 12 13 17"/>
-          <polyline points="6 7 11 12 6 17"/>
         </svg>
       </button>
     </div>
@@ -407,6 +416,40 @@ function handleToggleSidebar() {
   flex-direction: column;
   transition: width 0.3s ease;
   flex-shrink: 0;
+}
+
+/* 展开按钮（侧边栏收起时显示） */
+.expand-sidebar-btn {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 48px;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  color: #6B7280;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 1000;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.expand-sidebar-btn:hover {
+  background-color: #F3F4F6;
+  color: #1F2937;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+}
+
+.expand-sidebar-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .sidebar.closed {
