@@ -495,7 +495,7 @@ function confirmDelete() {
   width: 32px;
   height: 32px;
   background-color: #F9FAFB;
-  border: 1px solid #E5E7EB;
+  border: none;
   border-radius: 6px;
   color: #6B7280;
   cursor: pointer;
@@ -509,7 +509,6 @@ function confirmDelete() {
 .header-action-btn:hover {
   background-color: #F3F4F6;
   color: #1F2937;
-  border-color: #D1D5DB;
 }
 
 .header-action-btn svg {
