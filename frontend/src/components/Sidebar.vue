@@ -449,9 +449,6 @@ function confirmDelete() {
   width: 40px;
   height: 40px;
   justify-content: center;
-  background-color: #F3F4F6;
-  border-radius: 8px;
-  padding: 8px;
 }
 
 .sidebar.closed .brand-icon {
