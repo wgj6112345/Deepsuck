@@ -10,7 +10,22 @@
         @delete-conversation="handleDeleteConversation"
         @toggle-sidebar="handleToggleSidebar"
       />
-      <div class="chat-main" :class="{ 'empty-state': currentMessages.length === 0 }">
+      
+      <!-- 收起/展开侧边栏按钮（始终可见） -->
+      <button
+        class="toggle-sidebar-btn"
+        :class="{ expanded: uiStore.sidebarOpen }"
+        @click="handleToggleSidebar"
+        :title="uiStore.sidebarOpen ? '收起边栏' : '展开边栏'"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      
+      <div class="chat-main" :class="{ 'empty-state': currentMessages.length === 0, 'sidebar-closed': !uiStore.sidebarOpen }">
         <MessageList 
           :messages="currentMessages" 
           :conversation-title="currentConversation?.title"
@@ -276,6 +291,51 @@ function handleToggleSidebar() {
   justify-content: center;
   align-items: center;
   padding: 40px 32px;
+}
+
+.chat-main.sidebar-closed {
+  padding-left: 56px;
+}
+
+/* 收起/展开侧边栏按钮 */
+.toggle-sidebar-btn {
+  position: fixed;
+  left: 16px;
+  top: 20px;
+  width: 40px;
+  height: 40px;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  color: #6B7280;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-sidebar-btn:hover {
+  background-color: #F3F4F6;
+  color: #1F2937;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.toggle-sidebar-btn:active {
+  transform: scale(0.95);
+}
+
+.toggle-sidebar-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 侧边栏展开时，按钮移动到侧边栏右边缘 */
+.toggle-sidebar-btn.expanded {
+  left: 264px; /* 280px - 16px */
 }
 
 .chat-main.empty-state .message-list {
