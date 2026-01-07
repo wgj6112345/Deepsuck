@@ -14,7 +14,8 @@
         :title="open ? '收起边栏' : '展开边栏'"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline :points="open ? '15 18 9 12 15 6' : '9 18 15 12 9 6'" />
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="12" y1="3" x2="12" y2="21" />
         </svg>
       </button>
       <!-- <button
