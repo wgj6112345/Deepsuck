@@ -39,7 +39,6 @@ watch(
   () => props.content,
   (newContent) => {
     const rendered = md.render(newContent)
-    console.log('Markdown Rendered HTML:', rendered)
     renderedContent.value = rendered
   },
   { immediate: true }
