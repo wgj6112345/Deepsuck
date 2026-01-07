@@ -46,6 +46,7 @@ const currentMessages = computed(() => currentConversation.value?.messages || []
 
 onMounted(async () => {
   uiStore.loadThinkingEnabled()
+  uiStore.loadSidebarOpen()
   await loadConversations()
   
   // 从 localStorage 读取上次保存的对话ID

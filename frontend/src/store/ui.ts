@@ -13,10 +13,22 @@ export const useUIStore = defineStore('ui', () => {
 
   function toggleSidebar() {
     sidebarOpen.value = !sidebarOpen.value
+    // 持久化到 localStorage
+    localStorage.setItem('sidebarOpen', String(sidebarOpen.value))
   }
 
   function setSidebarOpen(value: boolean) {
     sidebarOpen.value = value
+    // 持久化到 localStorage
+    localStorage.setItem('sidebarOpen', String(value))
+  }
+
+  // 从 localStorage 恢复侧边栏状态
+  function loadSidebarOpen() {
+    const saved = localStorage.getItem('sidebarOpen')
+    if (saved !== null) {
+      sidebarOpen.value = saved === 'true'
+    }
   }
 
   // 从 localStorage 恢复思考模式状态
