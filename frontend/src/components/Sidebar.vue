@@ -543,7 +543,6 @@ function confirmDelete() {
   width: 20px;
   height: 20px;
 }
-}
 
 /* 新对话按钮区域 */
 .new-chat-section {
