@@ -11,5 +11,6 @@ type ConversationRepository interface {
 	GetAll() ([]*domain.Conversation, error)
 	Update(conv *domain.Conversation) error
 	UpdateTitle(id string, title string) error
+	TogglePin(id string) error
 	Delete(id string) error
 }

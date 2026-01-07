@@ -100,6 +100,25 @@ func (uc *ConversationUseCase) UpdateConversation(id string, title string) (*dom
 	return conv, nil
 }
 
+func (uc *ConversationUseCase) TogglePin(id string) (*domain.Conversation, error) {
+	conv, err := uc.convRepo.GetByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get conversation: %w", err)
+	}
+
+	if err := uc.convRepo.TogglePin(id); err != nil {
+		return nil, fmt.Errorf("failed to toggle conversation pin: %w", err)
+	}
+
+	// 重新获取更新后的对话
+	conv, err = uc.convRepo.GetByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get updated conversation: %w", err)
+	}
+
+	return conv, nil
+}
+
 func generateID() string {
 	return fmt.Sprintf("conv-%d", time.Now().UnixNano())
 }

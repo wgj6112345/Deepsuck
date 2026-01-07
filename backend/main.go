@@ -66,6 +66,13 @@ func main() {
 			convHandler.DeleteConversation(w, r)
 		case http.MethodPut:
 			convHandler.UpdateConversation(w, r)
+		case http.MethodPost:
+			// 检查是否是置顶操作
+			if strings.HasSuffix(r.URL.Path, "/pin") {
+				convHandler.TogglePin(w, r)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
@@ -98,11 +105,21 @@ func createTables(db *sql.DB) error {
 			id TEXT PRIMARY KEY,
 			title TEXT NOT NULL,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			pinned BOOLEAN DEFAULT 0
 		)
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to create conversations table: %w", err)
+	}
+
+	// 为已存在的表添加 pinned 字段（如果不存在）
+	_, err = db.Exec(`
+		ALTER TABLE conversations ADD COLUMN pinned BOOLEAN DEFAULT 0
+	`)
+	if err != nil {
+		// 字段可能已存在，忽略错误
+		log.Printf("Note: pinned column may already exist: %v", err)
 	}
 
 	// 创建 messages 表

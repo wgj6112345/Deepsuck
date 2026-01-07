@@ -9,6 +9,7 @@ type Conversation struct {
 	Messages  []Message `json:"messages"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
+	Pinned    bool      `json:"pinned"`
 }
 
 // Message 消息实体

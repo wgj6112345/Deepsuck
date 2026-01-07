@@ -42,10 +42,13 @@
           v-for="conv in group"
           :key="conv.id"
           class="conversation-item"
-          :class="{ active: conv.id === currentId }"
+          :class="{ active: conv.id === currentId, pinned: conv.pinned }"
         >
           <div class="conversation-content" @click="handleSelectConversation(conv.id)">
-            <svg class="conversation-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg v-if="conv.pinned" class="pin-icon" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            <svg v-else class="conversation-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <input
@@ -222,6 +225,7 @@ onUnmounted(() => {
 // 按时间分组对话
 const groupedConversations = computed(() => {
   const groups: Record<string, Conversation[]> = {
+    '置顶': [],
     '今天': [],
     '7天内': [],
     '30天内': [],
@@ -234,6 +238,12 @@ const groupedConversations = computed(() => {
   const thirtyDays = 30 * oneDay
 
   props.conversations.forEach(conv => {
+    // 置顶的对话单独分组
+    if (conv.pinned) {
+      groups['置顶'].push(conv)
+      return
+    }
+
     const convDate = new Date(conv.createdAt)
     const diff = now.getTime() - convDate.getTime()
 
@@ -341,10 +351,19 @@ async function saveRename(convId: string) {
   editingTitle.value = ''
 }
 
-function handlePin(convId: string) {
+async function handlePin(convId: string) {
   activeMenuId.value = null
-  // TODO: 实现置顶功能
-  alert('置顶功能开发中')
+  try {
+    const updatedConv = await conversationAPI.togglePin(convId)
+    // 更新本地状态
+    const conv = props.conversations.find(c => c.id === convId)
+    if (conv) {
+      conv.pinned = updatedConv.pinned
+    }
+  } catch (error) {
+    console.error('Failed to toggle pin:', error)
+    alert('置顶失败')
+  }
 }
 
 function handleShare(convId: string) {
@@ -577,6 +596,18 @@ function handleToggleSidebar() {
   color: #6B7280;
   flex-shrink: 0;
   transition: color 0.2s;
+}
+
+.pin-icon {
+  width: 16px;
+  height: 16px;
+  color: #F59E0B;
+  flex-shrink: 0;
+}
+
+.conversation-item.pinned .conversation-title {
+  font-weight: 600;
+  color: #1F2937;
 }
 
 .conversation-title {

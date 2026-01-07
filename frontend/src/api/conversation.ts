@@ -25,5 +25,10 @@ export const conversationAPI = {
   async updateConversation(id: string, data: { title: string }): Promise<Conversation> {
     const response = await client.put(`/api/conversations/${id}`, data)
     return response.data
+  },
+
+  async togglePin(id: string): Promise<Conversation> {
+    const response = await client.post(`/api/conversations/${id}/pin`)
+    return response.data
   }
 }

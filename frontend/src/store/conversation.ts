@@ -17,6 +17,7 @@ export interface Conversation {
   messages: Message[]
   createdAt: string
   updatedAt: string
+  pinned: boolean
 }
 
 export const useConversationStore = defineStore('conversation', () => {
