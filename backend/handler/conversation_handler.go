@@ -16,6 +16,8 @@ func NewConversationHandler(convUse *usecase.ConversationUseCase) *ConversationH
 }
 
 type CreateConversationRequest struct {
+	Title string `json:"title"`
+}
 type CreateConversationResponse struct {
 	ID        string    `json:"id"`
 	Title     string    `json:"title"`
