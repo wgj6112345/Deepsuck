@@ -441,7 +441,6 @@ function confirmDelete() {
 .sidebar.closed .sidebar-header {
   justify-content: center;
   padding: 12px 8px;
-  background-color: #F9FAFB;
   border-bottom: none;
 }
 
