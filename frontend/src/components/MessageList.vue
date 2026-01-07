@@ -37,6 +37,7 @@ defineProps<{
 <style scoped>
 .message-list {
   flex: 1;
+  overflow-y: auto;
   padding: 0;
   min-height: 0;
   max-width: 900px;
