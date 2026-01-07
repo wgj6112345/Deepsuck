@@ -297,6 +297,10 @@ function handleNewChat() {
   emit('newChat')
 }
 
+function handleToggleSidebar() {
+  emit('toggleSidebar')
+}
+
 function handleSelectConversation(id: string) {
   emit('selectConversation', id)
 }
