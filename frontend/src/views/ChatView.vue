@@ -231,15 +231,13 @@ function handleToggleSidebar() {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
   background-color: #FFFFFF;
   color: #1F2937;
 }
 
 .chat-body {
-  flex: 1;
   display: flex;
-  overflow: hidden;
   min-width: 0;
 }
 
@@ -247,7 +245,6 @@ function handleToggleSidebar() {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   background-color: #FFFFFF;
   min-width: 0;
   width: 100%;
@@ -268,6 +265,6 @@ function handleToggleSidebar() {
 
 .chat-main.empty-state .chat-input-container {
   flex: 0 0 auto;
-  margin-bottom: 80px;
+  padding-bottom: 40px;
 }
 </style>
