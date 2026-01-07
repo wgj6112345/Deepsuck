@@ -5,6 +5,8 @@ import (
 	"deepsuck/backend/usecase"
 	"encoding/json"
 	"net/http"
+	"strings"
+	"time"
 )
 
 type ConversationHandler struct {
@@ -171,7 +173,8 @@ func (h *ConversationHandler) TogglePin(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	id := r.URL.Path[len("/api/conversations/"):]
+	id := strings.TrimPrefix(r.URL.Path, "/api/conversations/")
+	id = strings.TrimSuffix(id, "/pin")
 	if id == "" {
 		http.Error(w, "Conversation ID is required", http.StatusBadRequest)
 		return
