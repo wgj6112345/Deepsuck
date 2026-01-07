@@ -28,3 +28,9 @@ dist/
 build/
 
 backend/deepsuck.db
+# Database backup
+*.db.backup
+
+# Test files
+frontend/test-*.html
+*.test.html

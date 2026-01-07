@@ -24,9 +24,9 @@ type ChatUseCase struct {
 }
 
 type titleState struct {
-	firstGenerated bool
+	firstGenerated  bool
 	secondGenerated bool
-	mu             sync.Mutex
+	mu              sync.Mutex
 }
 
 type ChatRequest struct {
@@ -361,265 +361,266 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 			}
 		}
 	}()
-		
-			return eventChan, errChan
+
+	return eventChan, errChan
+}
+
+// generateTitle 生成初始标题（基于第一条用户消息）
+func (uc *ChatUseCase) generateTitle(conversationID string, firstUserMessage string) {
+	config, err := uc.configUse.GetConfig()
+	if err != nil {
+		log.Printf("Failed to get config for title generation: %v", err)
+		return
+	}
+
+	if config.APIKey == "" {
+		log.Println("API Key not configured for title generation")
+		return
+	}
+
+	// 构建 Prompt
+	prompt := fmt.Sprintf("请根据以下对话内容生成一个简短的标题（10-20个字）：\n%s\n\n要求：\n1. 简洁明了\n2. 概括核心主题\n3. 不要包含标点符号", firstUserMessage)
+
+	requestBody := map[string]interface{}{
+		"model": config.ModelName,
+		"messages": []map[string]interface{}{
+			{
+				"role":    "user",
+				"content": prompt,
+			},
+		},
+		"temperature": 0.3,
+		"max_tokens":  50,
+	}
+
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		log.Printf("Failed to marshal title generation request: %v", err)
+		return
+	}
+
+	// 发送请求
+	apiURL := config.BaseURL
+	if !strings.Contains(apiURL, "/v1") {
+		if !strings.HasSuffix(apiURL, "/") {
+			apiURL += "/"
 		}
-		
-		// generateTitle 生成初始标题（基于第一条用户消息）
-		func (uc *ChatUseCase) generateTitle(conversationID string, firstUserMessage string) {
-			config, err := uc.configUse.GetConfig()
-			if err != nil {
-				log.Printf("Failed to get config for title generation: %v", err)
-				return
+		apiURL += "v1"
+	}
+	if !strings.HasSuffix(apiURL, "/") {
+		apiURL += "/"
+	}
+	apiURL += "chat/completions"
+
+	httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		log.Printf("Failed to create title generation request: %v", err)
+		return
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+config.APIKey)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		log.Printf("Failed to send title generation request: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Title generation request failed with status %d: %s", resp.StatusCode, string(body))
+		return
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		log.Printf("Failed to decode title generation response: %v", err)
+		return
+	}
+
+	// 提取生成的标题
+	choices, ok := result["choices"].([]interface{})
+	if !ok || len(choices) == 0 {
+		return
+	}
+
+	choice := choices[0].(map[string]interface{})
+	message, ok := choice["message"].(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	title, ok := message["content"].(string)
+	if !ok {
+		return
+	}
+
+	// 清理标题（去除空白字符和标点）
+	title = strings.TrimSpace(title)
+	title = strings.ReplaceAll(title, "\n", "")
+	title = strings.ReplaceAll(title, "\r", "")
+
+	// 更新对话标题
+	if err := uc.convRepo.UpdateTitle(conversationID, title); err != nil {
+		log.Printf("Failed to update conversation title: %v", err)
+		return
+	}
+
+	log.Printf("Generated title for conversation %s: %s", conversationID, title)
+
+	// 通知主 goroutine 标题已更新
+	if chanIface, ok := uc.titleChan.Load(conversationID); ok {
+		if ch, ok := chanIface.(chan string); ok {
+			select {
+			case ch <- title:
+				log.Printf("Sent title update event for conversation %s", conversationID)
+			default:
+				// channel 已满或已关闭，忽略
 			}
-		
-			if config.APIKey == "" {
-				log.Println("API Key not configured for title generation")
-				return
+		}
+	}
+}
+
+// updateTitle 更新标题（基于前3条用户消息，生成任务型标题）
+func (uc *ChatUseCase) updateTitle(conversationID string) {
+	config, err := uc.configUse.GetConfig()
+	if err != nil {
+		log.Printf("Failed to get config for title update: %v", err)
+		return
+	}
+
+	if config.APIKey == "" {
+		log.Println("API Key not configured for title update")
+		return
+	}
+
+	// 获取对话历史
+	messages, err := uc.msgRepo.GetByConversationID(conversationID)
+	if err != nil {
+		log.Printf("Failed to get messages for title update: %v", err)
+		return
+	}
+
+	// 收集前 3 条用户消息
+	userMessages := []string{}
+	for _, msg := range messages {
+		if msg.Role == "user" && len(userMessages) < 3 {
+			userMessages = append(userMessages, msg.Content)
+		}
+	}
+
+	if len(userMessages) == 0 {
+		return
+	}
+
+	// 拼接上下文
+	context := strings.Join(userMessages, "\n")
+
+	// 构建 Prompt（任务型标题）
+	prompt := fmt.Sprintf("请根据以下用户消息，生成一个\"任务型标题\"（10-20个字）：\n%s\n\n要求：\n1. 反映用户想要完成的任务\n2. 简洁明了\n3. 不要包含标点符号", context)
+
+	requestBody := map[string]interface{}{
+		"model": config.ModelName,
+		"messages": []map[string]interface{}{
+			{
+				"role":    "user",
+				"content": prompt,
+			},
+		},
+		"temperature": 0.3,
+		"max_tokens":  50,
+	}
+
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		log.Printf("Failed to marshal title update request: %v", err)
+		return
+	}
+
+	// 发送请求
+	apiURL := config.BaseURL
+	if !strings.Contains(apiURL, "/v1") {
+		if !strings.HasSuffix(apiURL, "/") {
+			apiURL += "/"
+		}
+		apiURL += "v1"
+	}
+	if !strings.HasSuffix(apiURL, "/") {
+		apiURL += "/"
+	}
+	apiURL += "chat/completions"
+
+	httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		log.Printf("Failed to create title update request: %v", err)
+		return
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+config.APIKey)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		log.Printf("Failed to send title update request: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Title update request failed with status %d: %s", resp.StatusCode, string(body))
+		return
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		log.Printf("Failed to decode title update response: %v", err)
+		return
+	}
+
+	// 提取生成的标题
+	choices, ok := result["choices"].([]interface{})
+	if !ok || len(choices) == 0 {
+		return
+	}
+
+	choice := choices[0].(map[string]interface{})
+	message, ok := choice["message"].(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	title, ok := message["content"].(string)
+	if !ok {
+		return
+	}
+
+	// 清理标题（去除空白字符和标点）
+	title = strings.TrimSpace(title)
+	title = strings.ReplaceAll(title, "\n", "")
+	title = strings.ReplaceAll(title, "\r", "")
+
+	// 更新对话标题
+	if err := uc.convRepo.UpdateTitle(conversationID, title); err != nil {
+		log.Printf("Failed to update conversation title: %v", err)
+		return
+	}
+
+	log.Printf("Updated title for conversation %s: %s", conversationID, title)
+
+	// 通知主 goroutine 标题已更新
+	if chanIface, ok := uc.titleChan.Load(conversationID); ok {
+		if ch, ok := chanIface.(chan string); ok {
+			select {
+			case ch <- title:
+				log.Printf("Sent title update event for conversation %s", conversationID)
+			default:
+				// channel 已满或已关闭，忽略
 			}
-		
-			// 构建 Prompt
-			prompt := fmt.Sprintf("请根据以下对话内容生成一个简短的标题（10-20个字）：\n%s\n\n要求：\n1. 简洁明了\n2. 概括核心主题\n3. 不要包含标点符号", firstUserMessage)
-		
-			requestBody := map[string]interface{}{
-				"model": config.ModelName,
-				"messages": []map[string]interface{}{
-					{
-						"role":    "user",
-						"content": prompt,
-					},
-				},
-				"temperature": 0.3,
-				"max_tokens":  50,
-			}
-		
-			jsonBody, err := json.Marshal(requestBody)
-			if err != nil {
-				log.Printf("Failed to marshal title generation request: %v", err)
-				return
-			}
-		
-			// 发送请求
-			apiURL := config.BaseURL
-			if !strings.Contains(apiURL, "/v1") {
-				if !strings.HasSuffix(apiURL, "/") {
-					apiURL += "/"
-				}
-				apiURL += "v1"
-			}
-			if !strings.HasSuffix(apiURL, "/") {
-				apiURL += "/"
-			}
-			apiURL += "chat/completions"
-		
-			httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
-			if err != nil {
-				log.Printf("Failed to create title generation request: %v", err)
-				return
-			}
-		
-			httpReq.Header.Set("Content-Type", "application/json")
-			httpReq.Header.Set("Authorization", "Bearer "+config.APIKey)
-		
-			client := &http.Client{Timeout: 30 * time.Second}
-			resp, err := client.Do(httpReq)
-			if err != nil {
-				log.Printf("Failed to send title generation request: %v", err)
-				return
-			}
-			defer resp.Body.Close()
-		
-			if resp.StatusCode != http.StatusOK {
-				body, _ := io.ReadAll(resp.Body)
-				log.Printf("Title generation request failed with status %d: %s", resp.StatusCode, string(body))
-				return
-			}
-		
-			var result map[string]interface{}
-			if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-				log.Printf("Failed to decode title generation response: %v", err)
-				return
-			}
-		
-			// 提取生成的标题
-			choices, ok := result["choices"].([]interface{})
-			if !ok || len(choices) == 0 {
-				return
-			}
-		
-			choice := choices[0].(map[string]interface{})
-			message, ok := choice["message"].(map[string]interface{})
-			if !ok {
-				return
-			}
-		
-			title, ok := message["content"].(string)
-			if !ok {
-				return
-			}
-		
-			// 清理标题（去除空白字符和标点）
-			title = strings.TrimSpace(title)
-			title = strings.ReplaceAll(title, "\n", "")
-			title = strings.ReplaceAll(title, "\r", "")
-		
-			// 更新对话标题
-					if err := uc.convRepo.UpdateTitle(conversationID, title); err != nil {
-						log.Printf("Failed to update conversation title: %v", err)
-						return
-					}
-			
-					log.Printf("Generated title for conversation %s: %s", conversationID, title)
-			
-					// 通知主 goroutine 标题已更新
-					if chanIface, ok := uc.titleChan.Load(conversationID); ok {
-						if ch, ok := chanIface.(chan string); ok {
-							select {
-							case ch <- title:
-								log.Printf("Sent title update event for conversation %s", conversationID)
-							default:
-								// channel 已满或已关闭，忽略
-							}
-						}
-					}
-				}		
-		// updateTitle 更新标题（基于前3条用户消息，生成任务型标题）
-		func (uc *ChatUseCase) updateTitle(conversationID string) {
-			config, err := uc.configUse.GetConfig()
-			if err != nil {
-				log.Printf("Failed to get config for title update: %v", err)
-				return
-			}
-		
-			if config.APIKey == "" {
-				log.Println("API Key not configured for title update")
-				return
-			}
-		
-			// 获取对话历史
-			messages, err := uc.msgRepo.GetByConversationID(conversationID)
-			if err != nil {
-				log.Printf("Failed to get messages for title update: %v", err)
-				return
-			}
-		
-			// 收集前 3 条用户消息
-			userMessages := []string{}
-			for _, msg := range messages {
-				if msg.Role == "user" && len(userMessages) < 3 {
-					userMessages = append(userMessages, msg.Content)
-				}
-			}
-		
-			if len(userMessages) == 0 {
-				return
-			}
-		
-			// 拼接上下文
-			context := strings.Join(userMessages, "\n")
-		
-			// 构建 Prompt（任务型标题）
-			prompt := fmt.Sprintf("请根据以下用户消息，生成一个\"任务型标题\"（10-20个字）：\n%s\n\n要求：\n1. 反映用户想要完成的任务\n2. 简洁明了\n3. 不要包含标点符号", context)
-		
-			requestBody := map[string]interface{}{
-				"model": config.ModelName,
-				"messages": []map[string]interface{}{
-					{
-						"role":    "user",
-						"content": prompt,
-					},
-				},
-				"temperature": 0.3,
-				"max_tokens":  50,
-			}
-		
-			jsonBody, err := json.Marshal(requestBody)
-			if err != nil {
-				log.Printf("Failed to marshal title update request: %v", err)
-				return
-			}
-		
-			// 发送请求
-			apiURL := config.BaseURL
-			if !strings.Contains(apiURL, "/v1") {
-				if !strings.HasSuffix(apiURL, "/") {
-					apiURL += "/"
-				}
-				apiURL += "v1"
-			}
-			if !strings.HasSuffix(apiURL, "/") {
-				apiURL += "/"
-			}
-			apiURL += "chat/completions"
-		
-			httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
-			if err != nil {
-				log.Printf("Failed to create title update request: %v", err)
-				return
-			}
-		
-			httpReq.Header.Set("Content-Type", "application/json")
-			httpReq.Header.Set("Authorization", "Bearer "+config.APIKey)
-		
-			client := &http.Client{Timeout: 30 * time.Second}
-			resp, err := client.Do(httpReq)
-			if err != nil {
-				log.Printf("Failed to send title update request: %v", err)
-				return
-			}
-			defer resp.Body.Close()
-		
-			if resp.StatusCode != http.StatusOK {
-				body, _ := io.ReadAll(resp.Body)
-				log.Printf("Title update request failed with status %d: %s", resp.StatusCode, string(body))
-				return
-			}
-		
-			var result map[string]interface{}
-			if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-				log.Printf("Failed to decode title update response: %v", err)
-				return
-			}
-		
-			// 提取生成的标题
-			choices, ok := result["choices"].([]interface{})
-			if !ok || len(choices) == 0 {
-				return
-			}
-		
-			choice := choices[0].(map[string]interface{})
-			message, ok := choice["message"].(map[string]interface{})
-			if !ok {
-				return
-			}
-		
-			title, ok := message["content"].(string)
-			if !ok {
-				return
-			}
-		
-			// 清理标题（去除空白字符和标点）
-			title = strings.TrimSpace(title)
-			title = strings.ReplaceAll(title, "\n", "")
-			title = strings.ReplaceAll(title, "\r", "")
-		
-			// 更新对话标题
-					if err := uc.convRepo.UpdateTitle(conversationID, title); err != nil {
-						log.Printf("Failed to update conversation title: %v", err)
-						return
-					}
-			
-					log.Printf("Updated title for conversation %s: %s", conversationID, title)
-			
-					// 通知主 goroutine 标题已更新
-					if chanIface, ok := uc.titleChan.Load(conversationID); ok {
-						if ch, ok := chanIface.(chan string); ok {
-							select {
-							case ch <- title:
-								log.Printf("Sent title update event for conversation %s", conversationID)
-							default:
-								// channel 已满或已关闭，忽略
-							}
-						}
-					}
-				}
+		}
+	}
+}
