@@ -11,19 +11,7 @@
         @toggle-sidebar="handleToggleSidebar"
       />
       
-      <!-- 收起/展开侧边栏按钮（始终可见） -->
-      <button
-        class="toggle-sidebar-btn"
-        :class="{ expanded: uiStore.sidebarOpen }"
-        @click="handleToggleSidebar"
-        :title="uiStore.sidebarOpen ? '收起边栏' : '展开边栏'"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-      </button>
+
       
       <div class="chat-main" :class="{ 'empty-state': currentMessages.length === 0, 'sidebar-closed': !uiStore.sidebarOpen }">
         <MessageList 

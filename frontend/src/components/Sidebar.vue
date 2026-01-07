@@ -8,6 +8,17 @@
         </svg>
         <span class="brand-text">deepseek</span>
       </div>
+      <button
+        class="header-action-btn"
+        @click="handleToggleSidebar"
+        :title="open ? '收起边栏' : '展开边栏'"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
     </div>
 
     <!-- 新对话按钮 -->
@@ -404,8 +415,15 @@ function confirmDelete() {
 .sidebar-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid #E5E7EB;
+}
+
+.sidebar.closed .sidebar-header {
+  padding: 12px;
+  background-color: #F9FAFB;
+  border-bottom: none;
 }
 
 .brand-logo {
@@ -425,6 +443,116 @@ function confirmDelete() {
   font-weight: 600;
   color: #4A6CF7;
   letter-spacing: -0.3px;
+}
+
+.sidebar.closed .brand-text {
+  display: none;
+}
+
+/* Header中的收起/展开按钮 */
+.header-action-btn {
+  width: 32px;
+  height: 32px;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  color: #6B7280;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.header-action-btn:hover {
+  background-color: #F3F4F6;
+  color: #1F2937;
+  border-color: #D1D5DB;
+}
+
+.header-action-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 新对话图标按钮（仅在收起状态下显示） */
+.new-chat-icon-btn {
+  display: none;
+}
+
+.sidebar.closed .new-chat-icon-btn {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  background-color: #F3F4F6;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+}
+
+.sidebar.closed .new-chat-icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 收起/展开按钮在收起状态下的样式 */
+.sidebar.closed .toggle-btn {
+  width: 40px;
+  height: 40px;
+  background-color: #F3F4F6;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+}
+
+.sidebar.closed .toggle-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 新对话图标按钮（收起状态下显示） */
+.new-chat-icon-btn {
+  display: none;
+}
+
+.sidebar.closed .new-chat-icon-btn {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  background-color: #F3F4F6;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+}
+
+.sidebar.closed .new-chat-icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 头部操作按钮 */
+.header-action-btn {
+  width: 32px;
+  height: 32px;
+  background-color: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #9CA3AF;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.header-action-btn:hover {
+  background-color: #F3F4F6;
+  color: #4B5563;
+}
+
+.header-action-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
 }
 
 /* 新对话按钮区域 */
