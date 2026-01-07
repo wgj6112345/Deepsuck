@@ -256,7 +256,6 @@ function handleToggleSidebar() {
 .chat-main.empty-state {
   justify-content: center;
   align-items: center;
-  padding: 40px 32px;
 }
 
 .chat-main.sidebar-closed {
@@ -265,7 +264,6 @@ function handleToggleSidebar() {
 
 .chat-main.empty-state .message-list {
   flex: 0 0 auto;
-  margin-bottom: 32px;
 }
 
 .chat-main.empty-state .chat-input-container {

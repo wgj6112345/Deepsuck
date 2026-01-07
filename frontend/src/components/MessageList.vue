@@ -54,7 +54,6 @@ defineProps<{
   min-height: 400px;
   color: #1F2937;
   text-align: center;
-  padding: 0 32px;
   max-width: 900px;
   margin: 0 auto;
   width: 100%;
@@ -63,7 +62,6 @@ defineProps<{
 .empty-icon {
   width: 64px;
   height: 64px;
-  margin-bottom: 24px;
   color: #3B82F6;
 }
 
@@ -76,7 +74,6 @@ defineProps<{
   font-size: 24px;
   font-weight: 600;
   color: #1F2937;
-  margin: 0;
   letter-spacing: -0.3px;
   line-height: 1.4;
 }
