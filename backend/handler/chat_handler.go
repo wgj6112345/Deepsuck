@@ -59,7 +59,14 @@ func (h *ChatHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
 			// 发送 SSE 事件
 			log.Printf("Sending event: %s, data: %q", event.Event, event.Data)
 			fmt.Fprintf(w, "event: %s\n", event.Event)
-			fmt.Fprintf(w, "data: %s\n\n", event.Data)
+
+			// 对 data 字段进行 JSON 编码，确保换行符等特殊字符正确传输
+			dataJSON, err := json.Marshal(event.Data)
+			if err != nil {
+				log.Printf("Failed to marshal event data: %v", err)
+				dataJSON = []byte(`"Error encoding data"`)
+			}
+			fmt.Fprintf(w, "data: %s\n\n", string(dataJSON))
 			flusher.Flush()
 
 		case err, ok := <-errChan:

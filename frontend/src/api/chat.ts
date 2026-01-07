@@ -56,7 +56,7 @@ export async function* streamChat(request: ChatRequest, signal?: AbortSignal): A
 
       const lines = event.split('\n')
       let eventType = ''
-      let eventData = ''
+      const dataLines: string[] = []
 
       for (const line of lines) {
         if (!line) {
@@ -66,16 +66,36 @@ export async function* streamChat(request: ChatRequest, signal?: AbortSignal): A
         if (line.startsWith('event: ')) {
           eventType = line.slice(7).trim()
         } else if (line.startsWith('data: ')) {
-          eventData = line.slice(6)
-          console.log(`SSE Data: "${eventData.replace(/\n/g, '\\n')}"`)
-          console.log(`Chars:`, Array.from(eventData).map(c => {
-            if (c === '\n') return '\\n';
-            return c;
-          }).join(''))
+          // 收集所有 data 行
+          dataLines.push(line.slice(6))
         }
       }
 
-      if (eventType && eventData) {
+      // 将多个 data 行用换行符连接
+      const eventDataJSON = dataLines.join('\n')
+
+      if (eventType && eventDataJSON) {
+        // 解析 JSON 编码的数据
+        let eventData: string
+        try {
+          eventData = JSON.parse(eventDataJSON)
+        } catch (e) {
+          console.error('Failed to parse SSE data JSON:', e)
+          console.error('JSON string:', eventDataJSON)
+          // 如果解析失败，直接使用原始字符串
+          eventData = eventDataJSON
+        }
+
+        console.log(`SSE Event: ${eventType}`)
+        console.log(`Data (JSON): "${eventDataJSON}"`)
+        console.log(`Data (Parsed): "${eventData.replace(/\n/g, '\\n')}"`)
+        console.log(`Data Chars:`, Array.from(eventData).map(c => {
+          if (c === '\n') return '\\n';
+          if (c === '\r') return '\\r';
+          if (c === '\t') return '\\t';
+          return c;
+        }).join(''))
+        
         yield { event: eventType as SSEEvent['event'], data: eventData }
       }
     }
