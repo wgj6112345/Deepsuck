@@ -156,6 +156,7 @@ function handleShare() {
 .message-item.assistant .message-content {
   background-color: transparent;
   padding: 0;
+  max-width: 70%;
 }
 
 .thinking-panel {
