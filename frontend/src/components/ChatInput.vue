@@ -116,7 +116,7 @@ function handleSend() {
 
 <style scoped>
 .chat-input-container {
-  padding: 20px 32px;
+  padding: 20px 32px 40px;
   background-color: #FFFFFF;
   width: 100%;
 }
