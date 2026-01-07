@@ -9,7 +9,7 @@
         <span class="brand-text">deepseek</span>
       </div>
       <button
-        class="header-action-btn"
+        class="header-action-btn toggle-btn"
         @click="handleToggleSidebar"
         :title="open ? '收起边栏' : '展开边栏'"
       >
@@ -17,6 +17,15 @@
           <line x1="3" y1="12" x2="21" y2="12"/>
           <line x1="3" y1="6" x2="21" y2="6"/>
           <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <button
+        class="header-action-btn new-chat-icon-btn"
+        @click="handleNewChat"
+        title="开启新对话"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
     </div>
@@ -406,11 +415,16 @@ function confirmDelete() {
 }
 
 .sidebar.closed {
-  width: 0;
-  min-width: 0;
-  max-width: 0;
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
   overflow: hidden;
   border-right: none;
+}
+
+.sidebar.closed .new-chat-section,
+.sidebar.closed .conversation-list {
+  display: none;
 }
 
 /* 品牌区域 */
@@ -423,9 +437,28 @@ function confirmDelete() {
 }
 
 .sidebar.closed .sidebar-header {
-  padding: 12px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
   background-color: #F9FAFB;
   border-bottom: none;
+}
+
+.sidebar.closed .brand-logo {
+  width: 40px;
+  height: 40px;
+  justify-content: center;
+  background-color: #F3F4F6;
+  border-radius: 8px;
+}
+
+.sidebar.closed .brand-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.sidebar.closed .brand-text {
+  display: none;
 }
 
 .brand-logo {
@@ -510,51 +543,6 @@ function confirmDelete() {
   width: 20px;
   height: 20px;
 }
-
-/* 新对话图标按钮（收起状态下显示） */
-.new-chat-icon-btn {
-  display: none;
-}
-
-.sidebar.closed .new-chat-icon-btn {
-  display: flex;
-  width: 40px;
-  height: 40px;
-  background-color: #F3F4F6;
-  border: 1px solid #E5E7EB;
-  border-radius: 8px;
-}
-
-.sidebar.closed .new-chat-icon-btn svg {
-  width: 20px;
-  height: 20px;
-}
-
-/* 头部操作按钮 */
-.header-action-btn {
-  width: 32px;
-  height: 32px;
-  background-color: transparent;
-  border: none;
-  border-radius: 6px;
-  color: #9CA3AF;
-  cursor: pointer;
-  padding: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.header-action-btn:hover {
-  background-color: #F3F4F6;
-  color: #4B5563;
-}
-
-.header-action-btn svg {
-  width: 18px;
-  height: 18px;
-  stroke-width: 2;
 }
 
 /* 新对话按钮区域 */
