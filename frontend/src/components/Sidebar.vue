@@ -244,7 +244,8 @@ const groupedConversations = computed(() => {
       return
     }
 
-    const convDate = new Date(conv.createdAt)
+    // 使用 updatedAt 而不是 createdAt 来判断分组
+    const convDate = new Date(conv.updatedAt)
     const diff = now.getTime() - convDate.getTime()
 
     if (diff < oneDay) {
