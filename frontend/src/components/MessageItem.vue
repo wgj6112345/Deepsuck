@@ -15,7 +15,17 @@
         </transition>
       </div>
       <div class="message-text">
-        <MarkdownRenderer :content="message.content" />
+        <!-- 如果是 assistant 且 content 为空，显示思考中提示 -->
+        <div v-if="message.role === 'assistant' && !message.content" class="thinking-indicator">
+          <span class="thinking-text">正在思考中</span>
+          <div class="thinking-dots">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+        </div>
+        <!-- 否则显示实际内容 -->
+        <MarkdownRenderer v-else :content="message.content" />
       </div>
       <div v-if="message.role === 'assistant'" class="message-actions">
         <button class="action-button" @click="handleCopy" title="复制">
@@ -176,7 +186,7 @@ function handleShare() {
   border: none;
   color: #4A6CF7;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 500;
   text-align: left;
   transition: all 0.2s;
@@ -223,7 +233,7 @@ function handleShare() {
 .message-text {
   line-height: 1.7;
   color: #1F2937;
-  font-size: 14px;
+  font-size: 17px;
 }
 
 .message-text :deep(p) {
@@ -251,15 +261,15 @@ function handleShare() {
 }
 
 .message-text :deep(h1) {
-  font-size: 24px;
+  font-size: 27px;
 }
 
 .message-text :deep(h2) {
-  font-size: 20px;
+  font-size: 23px;
 }
 
 .message-text :deep(h3) {
-  font-size: 18px;
+  font-size: 21px;
 }
 
 .message-actions {
@@ -293,5 +303,49 @@ function handleShare() {
 .action-button svg {
   width: 18px;
   height: 18px;
+}
+
+.thinking-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.thinking-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background-color: #9CA3AF;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+.thinking-text {
+  font-size: 15px;
+  color: #6B7280;
+  font-weight: 500;
 }
 </style>

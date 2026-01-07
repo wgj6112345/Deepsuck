@@ -49,6 +49,18 @@
         </div>
       </div>
     </div>
+    
+    <!-- 悬浮定位按钮 -->
+    <button
+      v-if="showScrollButton"
+      class="scroll-to-bottom-btn"
+      @click="$emit('scrollToBottom')"
+      title="查看最新回复"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 5v14M19 12l-7 7M5 12l7 7"/>
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -57,11 +69,13 @@ import { ref, computed, watch, nextTick } from 'vue'
 
 const props = defineProps<{
   disabled?: boolean
+  showScrollButton?: boolean
 }>()
 
 const emit = defineEmits<{
   send: [content: string]
   stop: []
+  scrollToBottom: []
 }>()
 
 const inputContent = ref('')
@@ -123,14 +137,14 @@ function handleSend() {
   padding: 20px 32px 40px;
   background-color: #FFFFFF;
   width: 100%;
+  position: relative;
 }
 
 .input-wrapper {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 900px;
-  margin: 0 auto;
+  width: 100%;
   padding: 24px;
   border-radius: 20px;
   border: 1px solid #EDEDED;
@@ -144,7 +158,7 @@ function handleSend() {
   border: none;
   padding: 0;
   color: #333333;
-  font-size: 18px;
+  font-size: 19px;
   resize: none;
   outline: none;
   line-height: 1.5;
@@ -167,7 +181,7 @@ function handleSend() {
 .input-field::placeholder {
   color: #999999;
   font-weight: 400;
-  font-size: 18px;
+  font-size: 21px;
 }
 
 .input-actions {
@@ -198,7 +212,7 @@ function handleSend() {
   color: #333333;
   border: 1px solid #E0E0E0;
   border-radius: 20px;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -292,5 +306,36 @@ function handleSend() {
 .stop-icon {
   width: 18px;
   height: 18px;
+}
+
+.scroll-to-bottom-btn {
+  position: absolute;
+  bottom: calc(100% + 20px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 48px;
+  background-color: #FFFFFF;
+  color: #6B7280;
+  border: 1px solid #E5E7EB;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+  z-index: 50;
+}
+
+.scroll-to-bottom-btn:hover {
+  background-color: #F9FAFB;
+  border-color: #D1D5DB;
+  transform: translateX(-50%) scale(1.1);
+}
+
+.scroll-to-bottom-btn svg {
+  width: 24px;
+  height: 24px;
 }
 </style>

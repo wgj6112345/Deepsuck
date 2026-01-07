@@ -486,7 +486,7 @@ function confirmDelete() {
 }
 
 .brand-text {
-  font-size: 18px;
+  font-size: 21px;
   font-weight: 600;
   color: #4A6CF7;
   letter-spacing: -0.3px;
@@ -574,7 +574,7 @@ function confirmDelete() {
   color: #1F2937;
   border: none;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -607,7 +607,7 @@ function confirmDelete() {
 }
 
 .group-title {
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 500;
   color: #6B7280;
   padding: 8px 8px 4px;
@@ -700,7 +700,7 @@ function confirmDelete() {
 
 .conversation-title {
   flex: 1;
-  font-size: 14px;
+  font-size: 17px;
   color: #1F2937;
   white-space: nowrap;
   overflow: hidden;
@@ -710,7 +710,7 @@ function confirmDelete() {
 
 .conversation-title-input {
   flex: 1;
-  font-size: 14px;
+  font-size: 17px;
   color: #1F2937;
   padding: 2px 4px;
   border: 1px solid #4A6CF7;
@@ -778,7 +778,7 @@ function confirmDelete() {
   cursor: pointer;
   transition: background-color 0.2s;
   color: #333333;
-  font-size: 15px;
+  font-size: 18px;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', 'Segoe UI', sans-serif;
 }
 
@@ -819,7 +819,7 @@ function confirmDelete() {
 }
 
 .user-email {
-  font-size: 14px;
+  font-size: 17px;
   color: #1F2937;
   font-weight: 500;
 }
@@ -872,7 +872,7 @@ function confirmDelete() {
   cursor: pointer;
   transition: background-color 0.2s;
   color: #1F2937;
-  font-size: 14px;
+  font-size: 17px;
 }
 
 .menu-item:hover {
@@ -920,7 +920,7 @@ function confirmDelete() {
 
 .delete-dialog-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 21px;
   font-weight: 600;
   color: #1F2937;
 }
@@ -931,7 +931,7 @@ function confirmDelete() {
 
 .delete-dialog-body p {
   margin: 0;
-  font-size: 14px;
+  font-size: 17px;
   color: #6B7280;
   line-height: 1.5;
 }
@@ -945,7 +945,7 @@ function confirmDelete() {
 .dialog-button {
   padding: 8px 20px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;

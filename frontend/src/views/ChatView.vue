@@ -12,20 +12,25 @@
     
     <div class="chat-content" :class="{ 'sidebar-closed': !uiStore.sidebarOpen }">
       <MessageList 
+        ref="messageListRef"
         :messages="currentMessages" 
         :conversation-title="currentConversation?.title"
+        @scroll="handleScroll"
       />
       <ChatInput
+        :key="conversationStore.currentConversationId"
         :disabled="loading"
+        :show-scroll-button="showScrollButton"
         @send="handleSendMessage"
         @stop="handleStop"
+        @scroll-to-bottom="scrollToBottom"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useConversationStore } from '../store/conversation'
 import { useUIStore } from '../store/ui'
 import { conversationAPI } from '../api/conversation'
@@ -42,6 +47,14 @@ let abortController: AbortController | null = null
 
 const currentConversation = computed(() => conversationStore.currentConversation)
 const currentMessages = computed(() => currentConversation.value?.messages || [])
+
+const messageListRef = ref<InstanceType<typeof MessageList> | null>(null)
+const showScrollButton = ref(false)
+
+// 监听 loading 状态，当 agent 输出时显示按钮
+watch(loading, (newLoading) => {
+  showScrollButton.value = newLoading
+})
 
 onMounted(async () => {
   uiStore.loadThinkingEnabled()
@@ -74,6 +87,23 @@ onMounted(async () => {
     }
   }
 })
+
+function handleScroll() {
+  // 检查是否滚动到底部
+  if (messageListRef.value) {
+    const isNearBottom = messageListRef.value.isNearBottom()
+    // 如果 agent 正在输出且不在底部，显示按钮
+    showScrollButton.value = loading.value && !isNearBottom
+  }
+}
+
+function scrollToBottom() {
+  if (messageListRef.value) {
+    messageListRef.value.scrollToBottom()
+    // 点击按钮后立即隐藏按钮
+    showScrollButton.value = false
+  }
+}
 
 async function loadConversations() {
   try {

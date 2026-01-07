@@ -1,5 +1,5 @@
 <template>
-  <div class="message-list">
+  <div class="message-list" ref="messageListEl" @scroll="handleScroll">
     <div v-if="messages.length === 0" class="empty-state">
       <div class="empty-icon">
         <svg viewBox="0 0 24 24" fill="currentColor">
@@ -27,13 +27,41 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import MessageItem from './MessageItem.vue'
 import type { Message } from '../store/conversation'
 
-defineProps<{
+const props = defineProps<{
   messages: Message[]
   conversationTitle?: string
 }>()
+
+const emit = defineEmits<{
+  scroll: []
+}>()
+
+const messageListEl = ref<HTMLElement | null>(null)
+
+function handleScroll() {
+  emit('scroll')
+}
+
+defineExpose({
+  isNearBottom,
+  scrollToBottom
+})
+
+function isNearBottom(threshold = 100): boolean {
+  if (!messageListEl.value) return true
+  const { scrollTop, scrollHeight, clientHeight } = messageListEl.value
+  return scrollHeight - scrollTop - clientHeight < threshold
+}
+
+function scrollToBottom() {
+  if (messageListEl.value) {
+    messageListEl.value.scrollTop = messageListEl.value.scrollHeight
+  }
+}
 </script>
 
 <style scoped>
@@ -71,7 +99,7 @@ defineProps<{
 }
 
 .empty-title {
-  font-size: 24px;
+  font-size: 27px;
   font-weight: 600;
   color: #1F2937;
   margin: 0;
@@ -97,7 +125,7 @@ defineProps<{
 .ai-disclaimer {
   text-align: center;
   padding: 16px 32px 24px;
-  font-size: 12px;
+  font-size: 15px;
   color: #9CA3AF;
 }
 </style>

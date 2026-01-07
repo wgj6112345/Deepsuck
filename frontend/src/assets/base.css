@@ -64,14 +64,14 @@
   --ds-transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Font Sizes */
-  --ds-font-xs: 12px;
-  --ds-font-sm: 13px;
-  --ds-font-base: 14px;
-  --ds-font-lg: 15px;
-  --ds-font-xl: 16px;
-  --ds-font-2xl: 18px;
-  --ds-font-3xl: 20px;
-  --ds-font-4xl: 24px;
+  --ds-font-xs: 15px;
+  --ds-font-sm: 16px;
+  --ds-font-base: 17px;
+  --ds-font-lg: 18px;
+  --ds-font-xl: 19px;
+  --ds-font-2xl: 21px;
+  --ds-font-3xl: 23px;
+  --ds-font-4xl: 27px;
 
   /* Font Weights */
   --ds-font-normal: 400;
