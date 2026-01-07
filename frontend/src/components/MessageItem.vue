@@ -142,7 +142,6 @@ function handleShare() {
 .message-content {
   flex: 1;
   min-width: 0;
-  max-width: 70%;
 }
 
 .message-item.user .message-content {
@@ -156,7 +155,7 @@ function handleShare() {
 .message-item.assistant .message-content {
   background-color: transparent;
   padding: 0;
-  max-width: 70%;
+  width: 100%;
 }
 
 .thinking-panel {
