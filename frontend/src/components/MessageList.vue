@@ -40,6 +40,9 @@ defineProps<{
   overflow-y: auto;
   padding: 0;
   min-height: 0;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .empty-state {
@@ -52,6 +55,9 @@ defineProps<{
   color: #1F2937;
   text-align: center;
   padding: 0 32px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .empty-icon {
