@@ -127,7 +127,7 @@ function handleSend() {
   gap: 24px;
   max-width: 900px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 24px;
   border-radius: 20px;
   border: 1px solid #EDEDED;
   background-color: #FFFFFF;
@@ -144,7 +144,7 @@ function handleSend() {
   resize: none;
   outline: none;
   line-height: 1.5;
-  min-height: 24px;
+  min-height: 40px;
   max-height: 200px;
   overflow-y: auto;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', 'Segoe UI', sans-serif;
