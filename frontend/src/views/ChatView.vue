@@ -137,7 +137,7 @@ async function handleDeleteConversation(id: string) {
       // 删除的是当前对话且没有其他对话了
       localStorage.removeItem('currentConversationId')
     }
-  } catch (error) {
+  } catch {
     // Error deleting conversation
   }
 }
@@ -268,5 +268,6 @@ function handleToggleSidebar() {
 
 .chat-main.empty-state .chat-input-container {
   flex: 0 0 auto;
+  margin-bottom: 40px;
 }
 </style>
