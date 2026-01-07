@@ -12,13 +12,15 @@
       <div class="conversation-title">
         {{ conversationTitle }}
       </div>
-      <MessageItem
-        v-for="message in messages"
-        :key="message.id"
-        :message="message"
-      />
-      <div class="ai-disclaimer">
-        内容由 AI 生成，请仔细甄别
+      <div class="messages-container">
+        <MessageItem
+          v-for="message in messages"
+          :key="message.id"
+          :message="message"
+        />
+        <div class="ai-disclaimer">
+          内容由 AI 生成，请仔细甄别
+        </div>
       </div>
     </template>
   </div>
@@ -40,8 +42,6 @@ defineProps<{
   overflow-y: auto;
   padding: 0;
   min-height: 0;
-  max-width: 900px;
-  margin: 0 auto;
   width: 100%;
 }
 
@@ -54,14 +54,14 @@ defineProps<{
   min-height: 400px;
   color: #1F2937;
   text-align: center;
-  max-width: 900px;
-  margin: 0 auto;
+  padding: 0;
   width: 100%;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
+  margin-bottom: 24px;
   color: #3B82F6;
 }
 
@@ -74,6 +74,7 @@ defineProps<{
   font-size: 24px;
   font-weight: 600;
   color: #1F2937;
+  margin: 0;
   letter-spacing: -0.3px;
   line-height: 1.4;
 }
@@ -86,6 +87,13 @@ defineProps<{
   padding: 24px 32px 16px;
   border-bottom: 1px solid #E5E7EB;
   margin-bottom: 24px;
+  width: 100%;
+}
+
+.messages-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 32px;
 }
 
 .ai-disclaimer {

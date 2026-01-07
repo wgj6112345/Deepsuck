@@ -405,12 +405,18 @@ function confirmDelete() {
   width: 280px;
   min-width: 280px;
   max-width: 280px;
+  height: 100vh;
   background-color: #FFFFFF;
   border-right: 1px solid #E5E7EB;
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
   flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  overflow-y: auto;
+  z-index: 100;
 }
 
 .sidebar.closed {

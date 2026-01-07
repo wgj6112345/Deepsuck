@@ -1,29 +1,25 @@
 <template>
   <div class="chat-view">
-    <div class="chat-body">
-      <Sidebar
-        :conversations="conversationStore.conversations"
-        :current-id="conversationStore.currentConversationId"
-        :open="uiStore.sidebarOpen"
-        @new-chat="handleNewChat"
-        @select-conversation="handleSelectConversation"
-        @delete-conversation="handleDeleteConversation"
-        @toggle-sidebar="handleToggleSidebar"
+    <Sidebar
+      :conversations="conversationStore.conversations"
+      :current-id="conversationStore.currentConversationId"
+      :open="uiStore.sidebarOpen"
+      @new-chat="handleNewChat"
+      @select-conversation="handleSelectConversation"
+      @delete-conversation="handleDeleteConversation"
+      @toggle-sidebar="handleToggleSidebar"
+    />
+    
+    <div class="chat-content" :class="{ 'sidebar-closed': !uiStore.sidebarOpen }">
+      <MessageList 
+        :messages="currentMessages" 
+        :conversation-title="currentConversation?.title"
       />
-      
-
-      
-      <div class="chat-main" :class="{ 'empty-state': currentMessages.length === 0, 'sidebar-closed': !uiStore.sidebarOpen }">
-        <MessageList 
-          :messages="currentMessages" 
-          :conversation-title="currentConversation?.title"
-        />
-        <ChatInput
-          :disabled="loading"
-          @send="handleSendMessage"
-          @stop="handleStop"
-        />
-      </div>
+      <ChatInput
+        :disabled="loading"
+        @send="handleSendMessage"
+        @stop="handleStop"
+      />
     </div>
   </div>
 </template>
@@ -229,21 +225,14 @@ function handleToggleSidebar() {
 <style scoped>
 .chat-view {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   width: 100%;
   height: 100vh;
   background-color: #FFFFFF;
   color: #1F2937;
 }
 
-.chat-body {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-  min-width: 0;
-}
-
-.chat-main {
+.chat-content {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -251,23 +240,11 @@ function handleToggleSidebar() {
   background-color: #FFFFFF;
   min-width: 0;
   width: 100%;
+  padding-left: 280px;
+  box-sizing: border-box;
 }
 
-.chat-main.empty-state {
-  justify-content: center;
-  align-items: center;
-}
-
-.chat-main.sidebar-closed {
+.chat-content.sidebar-closed {
   padding-left: 56px;
-}
-
-.chat-main.empty-state .message-list {
-  flex: 0 0 auto;
-}
-
-.chat-main.empty-state .chat-input-container {
-  flex: 0 0 auto;
-  padding-bottom: 40px;
 }
 </style>
