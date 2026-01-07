@@ -16,12 +16,12 @@ func NewConversationHandler(convUse *usecase.ConversationUseCase) *ConversationH
 }
 
 type CreateConversationRequest struct {
-	Title string `json:"title"`
-}
-
 type CreateConversationResponse struct {
-	ID    string `json:"id"`
-	Title string `json:"title"`
+	ID        string    `json:"id"`
+	Title     string    `json:"title"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	Pinned    bool      `json:"pinned"`
 }
 
 func (h *ConversationHandler) CreateConversation(w http.ResponseWriter, r *http.Request) {
@@ -49,8 +49,11 @@ func (h *ConversationHandler) CreateConversation(w http.ResponseWriter, r *http.
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(CreateConversationResponse{
-		ID:    conv.ID,
-		Title: conv.Title,
+		ID:        conv.ID,
+		Title:     conv.Title,
+		CreatedAt: conv.CreatedAt,
+		UpdatedAt: conv.UpdatedAt,
+		Pinned:    conv.Pinned,
 	})
 }
 
