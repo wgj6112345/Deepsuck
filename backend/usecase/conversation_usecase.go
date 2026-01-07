@@ -84,6 +84,22 @@ func (uc *ConversationUseCase) DeleteConversation(id string) error {
 	return nil
 }
 
+func (uc *ConversationUseCase) UpdateConversation(id string, title string) (*domain.Conversation, error) {
+	conv, err := uc.convRepo.GetByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get conversation: %w", err)
+	}
+
+	conv.Title = title
+	conv.UpdatedAt = time.Now()
+
+	if err := uc.convRepo.Update(conv); err != nil {
+		return nil, fmt.Errorf("failed to update conversation: %w", err)
+	}
+
+	return conv, nil
+}
+
 func generateID() string {
 	return fmt.Sprintf("conv-%d", time.Now().UnixNano())
 }

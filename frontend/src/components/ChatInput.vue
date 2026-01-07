@@ -1,17 +1,17 @@
 <template>
   <div class="chat-input-container">
-    <div class="chat-input-wrapper">
-      <div class="input-area">
-        <textarea
-          v-model="inputContent"
-          placeholder="给 DeepSeek 发送消息"
-          class="input-textarea"
-          :disabled="disabled"
-          @keydown.enter.prevent="handleEnter"
-          rows="1"
-          ref="textareaRef"
-        />
-        <div class="input-actions">
+    <div class="input-wrapper">
+      <textarea
+        v-model="inputContent"
+        placeholder="给 DeepSeek 发送消息"
+        class="input-field"
+        :disabled="disabled"
+        @keydown.enter.prevent="handleEnter"
+        rows="1"
+        ref="textareaRef"
+      />
+      <div class="input-actions">
+        <div class="left-actions">
           <button class="feature-button" title="深度思考">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3"/>
@@ -27,27 +27,27 @@
             <span>联网搜索</span>
           </button>
         </div>
-      </div>
-      <div class="input-right">
-        <button class="attachment-button" title="附件">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-          </svg>
-        </button>
-        <button
-          class="send-button"
-          :class="{ loading: disabled }"
-          :disabled="!canSend && !disabled"
-          @click="handleClick"
-          :title="disabled ? '停止生成' : '发送消息'"
-        >
-          <svg v-if="!disabled" class="send-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <svg v-else class="stop-icon" viewBox="0 0 24 24" fill="currentColor">
-            <rect x="6" y="6" width="12" height="12" rx="2"/>
-          </svg>
-        </button>
+        <div class="right-actions">
+          <button class="attachment-button" title="附件">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+            </svg>
+          </button>
+          <button
+            class="send-button"
+            :class="{ loading: disabled, active: canSend }"
+            :disabled="!canSend && !disabled"
+            @click="handleClick"
+            :title="disabled ? '停止生成' : '发送消息'"
+          >
+            <svg v-if="!disabled" class="send-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+            <svg v-else class="stop-icon" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="6" width="12" height="12" rx="2"/>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -118,98 +118,104 @@ function handleSend() {
 .chat-input-container {
   padding: 20px 32px;
   background-color: #FFFFFF;
+  width: 100%;
 }
 
-.chat-input-wrapper {
-  display: flex;
-  gap: 12px;
-  align-items: flex-end;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.input-area {
-  flex: 1;
+.input-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-width: 0;
+  gap: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid #EDEDED;
+  background-color: #FFFFFF;
+  position: relative;
 }
 
-.input-textarea {
-  flex: 1;
-  background-color: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
-  padding: 12px 16px;
-  color: #1F2937;
-  font-size: 16px;
+.input-field {
+  width: 100%;
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  color: #333333;
+  font-size: 18px;
   resize: none;
   outline: none;
-  transition: all 0.2s;
   line-height: 1.5;
-  min-height: 48px;
+  min-height: 24px;
   max-height: 200px;
   overflow-y: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', 'Segoe UI', sans-serif;
 }
 
-.input-textarea:focus {
-  border-color: #4A6CF7;
-  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+.input-field:focus {
+  outline: none;
+  box-shadow: none;
 }
 
-.input-textarea:disabled {
+.input-field:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background-color: #F9FAFB;
 }
 
-.input-textarea::placeholder {
-  color: #9CA3AF;
+.input-field::placeholder {
+  color: #999999;
+  font-weight: 400;
+  font-size: 18px;
 }
 
 .input-actions {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.left-actions {
+  display: flex;
   gap: 8px;
-  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.right-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .feature-button {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   padding: 6px 12px;
-  background-color: #F3F4F6;
-  color: #1F2937;
-  border: none;
+  background-color: #FFFFFF;
+  color: #333333;
+  border: 1px solid #E0E0E0;
   border-radius: 20px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', 'Segoe UI', sans-serif;
 }
 
 .feature-button:hover {
-  background-color: #E5E7EB;
+  background-color: #F5F5F5;
 }
 
 .feature-button svg {
   width: 16px;
   height: 16px;
-}
-
-.input-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   flex-shrink: 0;
 }
 
 .attachment-button {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   background-color: transparent;
-  color: #6B7280;
+  color: #1890FF;
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -221,8 +227,7 @@ function handleSend() {
 }
 
 .attachment-button:hover {
-  background-color: #F3F4F6;
-  color: #1F2937;
+  background-color: #E6F7FF;
 }
 
 .attachment-button svg {
@@ -231,10 +236,10 @@ function handleSend() {
 }
 
 .send-button {
-  width: 40px;
-  height: 40px;
-  background-color: #4A6CF7;
-  color: white;
+  width: 36px;
+  height: 36px;
+  background-color: #D9D9D9;
+  color: #FFFFFF;
   border: none;
   border-radius: 50%;
   cursor: pointer;
@@ -245,17 +250,24 @@ function handleSend() {
   padding: 0;
 }
 
+.send-button.active {
+  background-color: #4A6CF7;
+}
+
 .send-button:hover:not(:disabled) {
-  background-color: #3B5BD8;
-  transform: translateY(-1px);
+  background-color: #BFBFBF;
+}
+
+.send-button.active:hover:not(:disabled) {
+  background-color: #3B5FCC;
 }
 
 .send-button:active:not(:disabled) {
-  transform: translateY(0);
+  transform: scale(0.95);
 }
 
 .send-button:disabled {
-  background-color: #D1D5DB;
+  background-color: #E0E0E0;
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -269,14 +281,12 @@ function handleSend() {
 }
 
 .send-icon {
-  width: 20px;
-  height: 20px;
-  margin-left: 1px;
-  margin-top: 1px;
+  width: 18px;
+  height: 18px;
 }
 
 .stop-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 </style>

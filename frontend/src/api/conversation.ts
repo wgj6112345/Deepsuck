@@ -20,5 +20,10 @@ export const conversationAPI = {
   async deleteConversation(id: string): Promise<{ success: boolean }> {
     const response = await client.delete(`/api/conversations/${id}`)
     return response.data
+  },
+
+  async updateConversation(id: string, data: { title: string }): Promise<Conversation> {
+    const response = await client.put(`/api/conversations/${id}`, data)
+    return response.data
   }
 }

@@ -46,17 +46,19 @@ defineProps<{
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding-top: 120px;
+  justify-content: center;
+  flex: 1;
+  min-height: 400px;
   color: #1F2937;
   text-align: center;
+  padding: 0 32px;
 }
 
 .empty-icon {
   width: 64px;
   height: 64px;
   margin-bottom: 24px;
-  color: #4A6CF7;
+  color: #3B82F6;
 }
 
 .empty-icon svg {
@@ -70,6 +72,7 @@ defineProps<{
   color: #1F2937;
   margin: 0;
   letter-spacing: -0.3px;
+  line-height: 1.4;
 }
 
 .conversation-title {

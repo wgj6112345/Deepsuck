@@ -8,8 +8,9 @@
         @new-chat="handleNewChat"
         @select-conversation="handleSelectConversation"
         @delete-conversation="handleDeleteConversation"
+        @toggle-sidebar="handleToggleSidebar"
       />
-      <div class="chat-main">
+      <div class="chat-main" :class="{ 'empty-state': currentMessages.length === 0 }">
         <MessageList 
           :messages="currentMessages" 
           :conversation-title="currentConversation?.title"
@@ -87,6 +88,11 @@ async function loadConversations() {
 }
 
 async function handleNewChat() {
+  // 如果当前对话没有消息，直接使用当前对话，不创建新对话
+  if (currentConversation.value && currentConversation.value.messages.length === 0) {
+    return
+  }
+
   try {
     const newConv = await conversationAPI.createConversation()
     conversationStore.addConversation(newConv)
@@ -232,6 +238,10 @@ function handleStop() {
     abortController.abort()
   }
 }
+
+function handleToggleSidebar() {
+  uiStore.toggleSidebar()
+}
 </script>
 
 <style scoped>
@@ -259,5 +269,20 @@ function handleStop() {
   background-color: #FFFFFF;
   min-width: 0;
   width: 100%;
+}
+
+.chat-main.empty-state {
+  justify-content: center;
+  align-items: center;
+  padding: 40px 32px;
+}
+
+.chat-main.empty-state .message-list {
+  flex: 0 0 auto;
+  margin-bottom: 32px;
+}
+
+.chat-main.empty-state .chat-input-container {
+  flex: 0 0 auto;
 }
 </style>

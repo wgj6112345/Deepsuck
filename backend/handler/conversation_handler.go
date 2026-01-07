@@ -122,3 +122,40 @@ func (h *ConversationHandler) DeleteConversation(w http.ResponseWriter, r *http.
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(DeleteConversationResponse{Success: true})
 }
+
+type UpdateConversationRequest struct {
+	Title string `json:"title"`
+}
+
+func (h *ConversationHandler) UpdateConversation(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	id := r.URL.Path[len("/api/conversations/"):]
+	if id == "" {
+		http.Error(w, "Conversation ID is required", http.StatusBadRequest)
+		return
+	}
+
+	var req UpdateConversationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Title == "" {
+		http.Error(w, "Title is required", http.StatusBadRequest)
+		return
+	}
+
+	conv, err := h.convUse.UpdateConversation(id, req.Title)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(conv)
+}

@@ -64,6 +64,8 @@ func main() {
 			convHandler.GetConversation(w, r)
 		case http.MethodDelete:
 			convHandler.DeleteConversation(w, r)
+		case http.MethodPut:
+			convHandler.UpdateConversation(w, r)
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
