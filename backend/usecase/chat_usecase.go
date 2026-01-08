@@ -187,19 +187,6 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 			errChan <- err
 			return
 		}
-
-		// 监听标题更新事件（最多等待 5 秒）
-		if req.ConversationID != "" {
-			select {
-			case title := <-titleUpdateChan:
-				eventChan <- SSEEvent{
-					Event: "title_update",
-					Data:  title,
-				}
-			case <-time.After(5 * time.Second):
-				// 超时，不等待标题更新
-			}
-		}
 		
 		// 保存助手消息到数据库
 		if assistantMsg != nil {
@@ -268,6 +255,19 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 						}()
 					}
 				}
+			}
+		}
+
+		// 监听标题更新事件（最多等待 10 秒）
+		if req.ConversationID != "" {
+			select {
+			case title := <-titleUpdateChan:
+				eventChan <- SSEEvent{
+					Event: "title_update",
+					Data:  title,
+				}
+			case <-time.After(10 * time.Second):
+				// 超时，不等待标题更新
 			}
 		}
 	}()
