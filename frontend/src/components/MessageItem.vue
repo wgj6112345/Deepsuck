@@ -165,7 +165,7 @@ function handleShare() {
 .message-text {
   line-height: 1.7;
   color: #1F2937;
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .message-text :deep(p) {
@@ -193,15 +193,15 @@ function handleShare() {
 }
 
 .message-text :deep(h1) {
-  font-size: 25px;
-}
-
-.message-text :deep(h2) {
   font-size: 21px;
 }
 
+.message-text :deep(h2) {
+  font-size: 17px;
+}
+
 .message-text :deep(h3) {
-  font-size: 19px;
+  font-size: 15px;
 }
 
 .message-actions {

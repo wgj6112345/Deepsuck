@@ -201,7 +201,7 @@ function toggleThinking() {
 .input-field::placeholder {
   color: #999999;
   font-weight: 400;
-  font-size: 21px;
+  font-size: 17px;
 }
 
 .input-actions {
