@@ -27,6 +27,9 @@ Thumbs.db
 dist/
 build/
 
+# Backend binary
+backend/backend
+
 backend/deepsuck.db
 # Database backup
 *.db.backup

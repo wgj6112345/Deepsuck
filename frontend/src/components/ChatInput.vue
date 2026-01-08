@@ -244,9 +244,9 @@ function toggleThinking() {
 }
 
 .feature-button.active {
-  background-color: #E6F7FF;
-  border-color: #1890FF;
-  color: #1890FF;
+  background-color: #EFF6FF;
+  border-color: #4A6CF7;
+  color: #4A6CF7;
 }
 
 .feature-button svg {
