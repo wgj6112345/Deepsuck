@@ -1,4 +1,3 @@
-import type { Message } from '../store/conversation'
 
 export interface ChatRequest {
   conversationId: string
@@ -32,7 +31,6 @@ export async function* streamChat(request: ChatRequest, signal?: AbortSignal): A
 
   const decoder = new TextDecoder()
   let buffer = ''
-  let currentEvent = ''
 
   while (true) {
     if (signal?.aborted) {
@@ -79,7 +77,7 @@ export async function* streamChat(request: ChatRequest, signal?: AbortSignal): A
         let eventData: string
         try {
           eventData = JSON.parse(eventDataJSON)
-        } catch (e) {
+        } catch {
           // 如果解析失败，直接使用原始字符串
           eventData = eventDataJSON
         }

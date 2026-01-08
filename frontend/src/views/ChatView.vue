@@ -35,6 +35,7 @@ import { useConversationStore } from '../store/conversation'
 import { useUIStore } from '../store/ui'
 import { conversationAPI } from '../api/conversation'
 import { streamChat } from '../api/chat'
+import type { Message } from '../store/conversation'
 import MessageList from '../components/MessageList.vue'
 import ChatInput from '../components/ChatInput.vue'
 import Sidebar from '../components/Sidebar.vue'
@@ -110,7 +111,7 @@ async function loadConversations() {
     conversationStore.setLoading(true)
     const conversations = await conversationAPI.getConversations()
     conversationStore.setConversations(conversations)
-  } catch (error) {
+  } catch {
     // Error loading conversations
   } finally {
     conversationStore.setLoading(false)
@@ -129,7 +130,7 @@ async function handleNewChat() {
     conversationStore.setCurrentConversation(newConv.id)
     // 保存当前对话ID到 localStorage
     localStorage.setItem('currentConversationId', newConv.id)
-  } catch (error) {
+  } catch {
     // Error creating conversation
   }
 }
@@ -179,7 +180,7 @@ async function handleSendMessage(content: string) {
   const convId = currentConversation.value.id
 
   // 创建临时用户消息
-  const userMsg: any = {
+  const userMsg: Message = {
     id: `temp-${Date.now()}`,
     conversationId: convId,
     role: 'user',
@@ -191,7 +192,7 @@ async function handleSendMessage(content: string) {
   conversationStore.addMessage(convId, userMsg)
 
   // 创建临时助手消息
-  const assistantMsg: any = {
+  const assistantMsg: Message = {
     id: `temp-assistant-${Date.now()}`,
     conversationId: convId,
     role: 'assistant',
@@ -229,8 +230,8 @@ async function handleSendMessage(content: string) {
         alert('发送失败: ' + event.data)
       }
     }
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'AbortError') {
       // Chat stopped by user
     } else {
       alert('发送失败，请检查网络和配置')
