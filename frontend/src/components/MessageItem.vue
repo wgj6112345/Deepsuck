@@ -165,7 +165,7 @@ function handleShare() {
 .message-text {
   line-height: 1.7;
   color: #1F2937;
-  font-size: 17px;
+  font-size: 15px;
 }
 
 .message-text :deep(p) {
@@ -193,47 +193,15 @@ function handleShare() {
 }
 
 .message-text :deep(h1) {
-  font-size: 27px;
+  font-size: 25px;
 }
 
 .message-text :deep(h2) {
-  font-size: 23px;
-}
-
-.message-text :deep(h3) {
   font-size: 21px;
 }
 
-.message-text :deep(p:first-child) {
-  margin-top: 0;
-}
-
-.message-text :deep(p:last-child) {
-  margin-bottom: 0;
-}
-
-.message-text :deep(h1),
-.message-text :deep(h2),
-.message-text :deep(h3),
-.message-text :deep(h4),
-.message-text :deep(h5),
-.message-text :deep(h6) {
-  margin-top: 24px;
-  margin-bottom: 12px;
-  font-weight: 600;
-  color: #1F2937;
-}
-
-.message-text :deep(h1) {
-  font-size: 27px;
-}
-
-.message-text :deep(h2) {
-  font-size: 23px;
-}
-
 .message-text :deep(h3) {
-  font-size: 21px;
+  font-size: 19px;
 }
 
 .message-actions {
