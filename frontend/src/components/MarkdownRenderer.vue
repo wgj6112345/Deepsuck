@@ -1,33 +1,53 @@
 <template>
-  <div class="markdown-renderer" v-html="renderedContent"></div>
+  <div class="markdown-renderer" v-html="renderedContent" ref="containerRef"></div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import MarkdownIt from 'markdown-it'
-import hljs from 'highlight.js'
-import 'highlight.js/styles/github.css'
+import Prism from 'prismjs'
+import 'prismjs/themes/prism.css'
+import 'prismjs/components/prism-python'
+import 'prismjs/components/prism-javascript'
+import 'prismjs/components/prism-typescript'
+import 'prismjs/components/prism-java'
+import 'prismjs/components/prism-c'
+import 'prismjs/components/prism-cpp'
+import 'prismjs/components/prism-go'
+import 'prismjs/components/prism-rust'
+import 'prismjs/components/prism-bash'
+import 'prismjs/components/prism-json'
+import 'prismjs/components/prism-css'
+import 'prismjs/components/prism-scss'
+import 'prismjs/components/prism-markdown'
+import 'prismjs/components/prism-yaml'
+import 'prismjs/components/prism-xml-doc'
 
 // Props
 const props = defineProps<{
   content: string
 }>()
 
+const containerRef = ref<HTMLElement | null>(null)
+
 // MarkdownIt 实例
 const md: MarkdownIt = new MarkdownIt({
   html: true,
   linkify: true,
   typographer: true,
-  breaks: true, // 单换行转 <br>
+  breaks: true,
   highlight: (str: string, lang: string): string => {
-    if (lang && hljs.getLanguage(lang)) {
+    if (lang && Prism.languages[lang]) {
       try {
-        return `<pre class="hljs"><code>${hljs.highlight(str, { language: lang }).value}</code></pre>`
+        const highlighted = Prism.highlight(str, Prism.languages[lang], lang)
+        const languageName = lang.toLowerCase()
+        const codeId = `code-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        return `<div class="code-block-wrapper"><div class="code-block-header"><span class="code-language">${languageName}</span><button class="copy-button" onclick="copyCode('${codeId}')" title="复制代码"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-text">复制</span></button></div><code id="${codeId}" class="code-content language-${lang}">${highlighted}</code></div>`
       } catch {
         // 如果高亮失败，回退到普通渲染
       }
     }
-    return `<pre class="hljs"><code>${md.utils.escapeHtml(str)}</code></pre>`
+    return `<div class="code-block-wrapper"><code>${md.utils.escapeHtml(str)}</code></div>`
   }
 })
 
@@ -44,6 +64,31 @@ watch(
   { immediate: true }
 )
 
+// 全局复制函数
+onMounted(() => {
+  // 将复制函数挂载到 window 对象
+  ;(window as any).copyCode = (codeId: string) => {
+    const codeElement = document.getElementById(codeId)
+    if (codeElement) {
+      const code = codeElement.textContent || ''
+      navigator.clipboard.writeText(code).then(() => {
+        // 更新按钮文本
+        const button = document.querySelector(`button[onclick="copyCode('${codeId}')"]`)
+        if (button) {
+          const textSpan = button.querySelector('.copy-text')
+          if (textSpan) {
+            textSpan.textContent = '已复制'
+            setTimeout(() => {
+              textSpan.textContent = '复制'
+            }, 2000)
+          }
+        }
+      }).catch((err) => {
+        console.error('复制失败:', err)
+      })
+    }
+  }
+})
 </script>
 
 <style scoped>
@@ -104,119 +149,289 @@ watch(
 .markdown-renderer :deep(ul) { list-style-type: disc; }
 .markdown-renderer :deep(ol) { list-style-type: decimal; }
 
-.markdown-renderer :deep(code) {
-  font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+/* 行内代码样式 - 排除代码块中的 code */
+.markdown-renderer :deep(p code),
+.markdown-renderer :deep(li code),
+.markdown-renderer :deep(td code),
+.markdown-renderer :deep(th code) {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Courier New', monospace;
   font-size: 0.9em;
-  background-color: var(--ds-primary-light);
+  background-color: #F9FAFB;
   color: var(--ds-primary);
   padding: 0.2em 0.5em;
   border-radius: var(--ds-radius-sm);
   font-weight: var(--ds-font-medium);
 }
 
-.markdown-renderer :deep(pre) {
-  background-color: #1E1E1E;
-  border: 1px solid var(--ds-border-default);
-  border-radius: var(--ds-radius-lg);
-  padding: var(--ds-spacing-lg);
-  overflow-x: auto;
-  margin: var(--ds-spacing-lg) 0;
+/* 代码块容器 - DeepSeek 样式 */
+
+.markdown-renderer :deep(.code-block-wrapper) {
+
+  margin: 8px 0;
+
+  background-color: #F9FAFB;
+
+  border: none;
+
+  border-radius: 8px;
+
+  overflow: hidden;
+
+  display: flex;
+
+  flex-direction: column;
+
 }
 
-.markdown-renderer :deep(pre code) { 
-  background-color: transparent; 
-  padding: 0; 
-  border-radius: 0; 
-  font-size: var(--ds-font-sm);
-  color: #D4D4D4;
+
+
+/* 代码块头部 - DeepSeek 样式 */
+
+.markdown-renderer :deep(.code-block-header) {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  padding: 8px 12px;
+
+  background-color: transparent;
+
+  border-bottom: none;
+
+  margin: 0;
+
+  flex-shrink: 0;
+
 }
+
+/* 代码语言标签 */
+
+.markdown-renderer :deep(.code-language) {
+
+  font-size: 0.75em;
+
+  font-weight: 500;
+
+  color: var(--ds-text-secondary);
+
+  text-transform: lowercase;
+
+}
+
+
+
+/* 代码内容 - DeepSeek 样式 */
+
+.markdown-renderer :deep(.code-content) {
+
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Courier New', monospace;
+
+  font-size: var(--ds-font-base);
+
+  font-weight: 600;
+
+  white-space: pre;
+
+  padding: 12px;
+
+  margin: 0;
+
+  overflow-x: auto;
+
+  background-color: transparent;
+
+  line-height: 1.6;
+
+  display: block;
+
+}
+
+
+
+/* 其他 Markdown 元素样式 */
 
 .markdown-renderer :deep(a) { 
+
   color: var(--ds-primary); 
+
   text-decoration: none;
+
   font-weight: var(--ds-font-medium);
+
   border-bottom: 1px solid transparent;
+
   transition: all var(--ds-transition-fast);
+
 }
+
+
 
 .markdown-renderer :deep(a:hover) { 
+
   color: var(--ds-primary-hover);
+
   border-bottom-color: var(--ds-primary-hover);
+
 }
 
+
+
 .markdown-renderer :deep(blockquote) { 
+
   border-left: 4px solid var(--ds-primary); 
+
   padding: var(--ds-spacing-md) var(--ds-spacing-lg); 
+
   margin: var(--ds-spacing-lg) 0; 
+
   background-color: var(--ds-bg-secondary); 
+
   color: var(--ds-text-secondary);
+
   border-radius: 0 var(--ds-radius-md) var(--ds-radius-md) 0;
+
 }
+
+
 
 .markdown-renderer :deep(blockquote p) { margin: 0; }
 
+
+
 .markdown-renderer :deep(table) { 
+
   border-collapse: collapse; 
+
   width: 100%; 
+
   margin: var(--ds-spacing-lg) 0; 
+
   overflow-x: auto;
+
   border-radius: var(--ds-radius-md);
+
   overflow: hidden;
+
 }
+
+
 
 .markdown-renderer :deep(th),
+
 .markdown-renderer :deep(td) { 
+
   border: 1px solid var(--ds-border-default); 
+
   padding: var(--ds-spacing-md) var(--ds-spacing-lg); 
+
   text-align: left; 
+
 }
+
+
 
 .markdown-renderer :deep(th) { 
+
   background-color: var(--ds-bg-tertiary); 
+
   font-weight: var(--ds-font-semibold); 
+
   color: var(--ds-text-primary);
+
 }
+
+
 
 .markdown-renderer :deep(tr:nth-child(even)) { 
+
   background-color: var(--ds-bg-secondary); 
+
 }
+
+
 
 .markdown-renderer :deep(strong) { 
+
   font-weight: var(--ds-font-semibold); 
+
   color: var(--ds-text-primary); 
+
 }
+
+
 
 .markdown-renderer :deep(em) { 
+
   font-style: italic; 
+
   color: var(--ds-text-secondary); 
+
 }
+
+
 
 .markdown-renderer :deep(hr) { 
+
   border: none; 
+
   border-top: 1px solid var(--ds-border-default); 
+
   margin: var(--ds-spacing-3xl) 0; 
+
 }
+
+
 
 .markdown-renderer :deep(img) { 
+
   max-width: 100%; 
+
   height: auto; 
+
   border-radius: var(--ds-radius-lg); 
+
   margin: var(--ds-spacing-md) 0;
+
   box-shadow: var(--ds-shadow-md);
+
 }
 
-.markdown-renderer :deep(.hljs) { 
-  background-color: transparent; 
-  padding: 0; 
+/* 复制按钮 - DeepSeek 样式 */
+.markdown-renderer :deep(.copy-button) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: transparent;
+  border: none;
+  color: #666666;
+  padding: 0;
+  border-radius: 0;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 400;
+  cursor: pointer;
+  transition: color var(--ds-transition-fast);
 }
 
-/* Code block syntax highlighting colors override */
-.markdown-renderer :deep(.hljs-keyword) { color: #569CD6; }
-.markdown-renderer :deep(.hljs-string) { color: #CE9178; }
-.markdown-renderer :deep(.hljs-comment) { color: #6A9955; }
-.markdown-renderer :deep(.hljs-function) { color: #DCDCAA; }
-.markdown-renderer :deep(.hljs-number) { color: #B5CEA8; }
-.markdown-renderer :deep(.hljs-operator) { color: #D4D4D4; }
-.markdown-renderer :deep(.hljs-class) { color: #4EC9B0; }
-.markdown-renderer :deep(.hljs-variable) { color: #9CDCFE; }
+.markdown-renderer :deep(.copy-button:hover) {
+  color: #333333;
+}
+
+.markdown-renderer :deep(.copy-button:active) {
+  color: #000000;
+}
+
+.markdown-renderer :deep(.copy-button svg) {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.markdown-renderer :deep(.copy-button .copy-text) {
+  font-weight: 400;
+}
 </style>
