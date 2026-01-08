@@ -162,7 +162,8 @@ func (p *MimoProvider) GenerateTitle(content string) (string, error) {
 
 // SupportsThinking 是否支持思考模式
 func (p *MimoProvider) SupportsThinking() bool {
-	return true
+	// Mimo API 虽然接受 thinking 参数，但不会返回思考过程
+	return false
 }
 
 // buildAPIURL 构建 API URL
@@ -200,15 +201,6 @@ func (p *MimoProvider) buildRequestBody(req *domain.AgentRequest) map[string]int
 		"temperature": req.Temperature,
 		"top_p":       0.95,
 		"max_tokens":  req.MaxTokens,
-	}
-
-	// Mimo API 的思考模式参数
-	if req.ThinkingEnabled {
-		requestBody["extra_body"] = map[string]interface{}{
-			"thinking": map[string]interface{}{
-				"type": "enabled",
-			},
-		}
 	}
 
 	return requestBody
@@ -249,7 +241,7 @@ func (p *MimoProvider) handleStreamResponse(body io.Reader, chunkChan chan<- dom
 			continue
 		}
 
-		// 处理思考内容
+		// 处理思考内容（Mimo 不支持，但保留代码以防将来支持）
 		if thinking, ok := delta["thinking"].(string); ok && thinking != "" {
 			chunkChan <- domain.AgentChunk{
 				Type:    "thinking",
