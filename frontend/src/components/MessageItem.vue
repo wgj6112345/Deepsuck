@@ -1,22 +1,15 @@
 <template>
   <div class="message-item" :class="message.role">
     <div class="message-content">
-      <div v-if="message.thinking && message.thinkingEnabled" class="thinking-panel">
-        <button class="thinking-toggle" @click="toggleThinking">
-          <svg class="thinking-icon" :class="{ expanded: thinkingExpanded }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span>思考过程</span>
-        </button>
-        <transition name="thinking-expand">
-          <div v-show="thinkingExpanded" class="thinking-content">
-            <MarkdownRenderer :content="message.thinking" />
-          </div>
-        </transition>
+      <div v-if="message.thinking && message.thinkingEnabled" class="thinking-wrapper">
+        <ThinkingPanel
+          :thinking="message.thinking"
+          :is-thinking="!message.content"
+        />
       </div>
       <div class="message-text">
         <!-- 如果是 assistant 且 content 为空，显示思考中提示 -->
-        <div v-if="message.role === 'assistant' && !message.content" class="thinking-indicator">
+        <div v-if="message.role === 'assistant' && !message.content && !message.thinking" class="thinking-indicator">
           <span class="thinking-text">正在思考中</span>
           <div class="thinking-dots">
             <span class="dot"></span>
@@ -70,18 +63,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import MarkdownRenderer from './MarkdownRenderer.vue'
+import ThinkingPanel from './ThinkingPanel.vue'
 import type { Message } from '../store/conversation'
 
 const props = defineProps<{
   message: Message
 }>()
 
-const thinkingExpanded = ref(false)
 const copied = ref(false)
-
-function toggleThinking() {
-  thinkingExpanded.value = !thinkingExpanded.value
-}
 
 function handleCopy() {
   navigator.clipboard.writeText(props.message.content)
@@ -166,68 +155,11 @@ function handleShare() {
   background-color: transparent;
   padding: 0;
   width: 100%;
+  max-width: 70%;
 }
 
-.thinking-panel {
-  background-color: #F9FAFB;
-  border: 1px solid #E5E7EB;
-  border-radius: 8px;
+.thinking-wrapper {
   margin-bottom: 16px;
-  overflow: hidden;
-}
-
-.thinking-toggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  background-color: #F3F4F6;
-  border: none;
-  color: #4A6CF7;
-  cursor: pointer;
-  font-size: 17px;
-  font-weight: 500;
-  text-align: left;
-  transition: all 0.2s;
-}
-
-.thinking-toggle:hover {
-  background-color: #E5E7EB;
-}
-
-.thinking-icon {
-  width: 16px;
-  height: 16px;
-  transition: transform 0.2s;
-}
-
-.thinking-icon.expanded {
-  transform: rotate(180deg);
-}
-
-.thinking-content {
-  padding: 14px;
-  border-top: 1px solid #E5E7EB;
-  background-color: #F9FAFB;
-}
-
-.thinking-expand-enter-active,
-.thinking-expand-leave-active {
-  transition: all 0.2s;
-  overflow: hidden;
-}
-
-.thinking-expand-enter-from,
-.thinking-expand-leave-to {
-  max-height: 0;
-  opacity: 0;
-}
-
-.thinking-expand-enter-to,
-.thinking-expand-leave-from {
-  max-height: 1000px;
-  opacity: 1;
 }
 
 .message-text {
@@ -238,6 +170,38 @@ function handleShare() {
 
 .message-text :deep(p) {
   margin: 12px 0;
+}
+
+.message-text :deep(p:first-child) {
+  margin-top: 0;
+}
+
+.message-text :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.message-text :deep(h1),
+.message-text :deep(h2),
+.message-text :deep(h3),
+.message-text :deep(h4),
+.message-text :deep(h5),
+.message-text :deep(h6) {
+  margin-top: 24px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #1F2937;
+}
+
+.message-text :deep(h1) {
+  font-size: 27px;
+}
+
+.message-text :deep(h2) {
+  font-size: 23px;
+}
+
+.message-text :deep(h3) {
+  font-size: 21px;
 }
 
 .message-text :deep(p:first-child) {

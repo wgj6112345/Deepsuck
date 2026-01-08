@@ -34,7 +34,7 @@ const containerRef = ref<HTMLElement | null>(null)
 const md: MarkdownIt = new MarkdownIt({
   html: true,
   linkify: true,
-  typographer: true,
+  typographer: false,
   breaks: true,
   highlight: (str: string, lang: string): string => {
     if (lang && Prism.languages[lang]) {

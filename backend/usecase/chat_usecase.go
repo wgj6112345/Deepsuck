@@ -113,60 +113,7 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 			return
 		}
 
-		// 标题生成逻辑
-		if req.ConversationID != "" {
-			// 获取或创建标题生成状态
-			stateIface, _ := uc.titleGen.LoadOrStore(req.ConversationID, &titleState{})
-			state := stateIface.(*titleState)
-			state.mu.Lock()
-
-			// 判断是否是第一条消息
-			isFirstMessage := conversation == nil || len(conversation.Messages) == 0
-
-			// 判断是否是第 3 轮对话（第 3 条用户消息）
-			isThirdUserMessage := false
-			if conversation != nil {
-				userMessageCount := 0
-				for _, msg := range conversation.Messages {
-					if msg.Role == "user" {
-						userMessageCount++
-					}
-				}
-				isThirdUserMessage = userMessageCount == 2 // 当前是第 3 条（从 0 开始计数）
-			}
-
-			state.mu.Unlock()
-
-			// 第一次生成标题（基于第一条用户消息）
-			if isFirstMessage && !state.firstGenerated {
-				go func() {
-					state.mu.Lock()
-					if state.firstGenerated {
-						state.mu.Unlock()
-						return
-					}
-					state.firstGenerated = true
-					state.mu.Unlock()
-
-					uc.generateTitle(req.ConversationID, req.Content)
-				}()
-			}
-
-			// 第二次更新标题（基于前 3 条用户消息，任务型标题）
-			if isThirdUserMessage && !state.secondGenerated {
-				go func() {
-					state.mu.Lock()
-					if state.secondGenerated {
-						state.mu.Unlock()
-						return
-					}
-					state.secondGenerated = true
-					state.mu.Unlock()
-
-					uc.updateTitle(req.ConversationID)
-				}()
-			}
-		}
+		// 标题生成逻辑在保存助手消息后触发
 
 		// 使用 Agent Provider 发送消息
 		// 动态创建 Provider（根据当前激活的配置）
@@ -225,8 +172,7 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 						Timestamp:       time.Now(),
 					}
 				}
-				handleContent := strings.Replace(chunk.Content, `\n\n`, `<br>`, -1)
-				fullContent.WriteString(handleContent)
+				fullContent.WriteString(chunk.Content)
 				eventChan <- SSEEvent{
 					Event: "content",
 					Data:  chunk.Content,
@@ -252,6 +198,76 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 				}
 			case <-time.After(5 * time.Second):
 				// 超时，不等待标题更新
+			}
+		}
+		
+		// 保存助手消息到数据库
+		if assistantMsg != nil {
+			assistantMsg.Thinking = fullThinking.String()
+			assistantMsg.Content = fullContent.String()
+			if err := uc.msgRepo.Create(assistantMsg); err != nil {
+				log.Printf("Failed to save assistant message: %v", err)
+			} else {
+				log.Printf("Saved assistant message: %s", assistantMsg.ID)
+				// 发送真实的消息 ID 给前端
+				eventChan <- SSEEvent{
+					Event: "done",
+					Data:  assistantMsg.ID,
+				}
+				
+				// 触发标题生成（基于助手回答）
+				if req.ConversationID != "" {
+					stateIface, _ := uc.titleGen.LoadOrStore(req.ConversationID, &titleState{})
+					state := stateIface.(*titleState)
+					state.mu.Lock()
+					
+					// 判断是否是第一条消息
+					isFirstMessage := conversation == nil || len(conversation.Messages) == 0
+					
+					// 判断是否是第 3 轮对话（第 3 条用户消息）
+					isThirdUserMessage := false
+					if conversation != nil {
+						userMessageCount := 0
+						for _, msg := range conversation.Messages {
+							if msg.Role == "user" {
+								userMessageCount++
+							}
+						}
+						isThirdUserMessage = userMessageCount == 2
+					}
+					
+					state.mu.Unlock()
+					
+					// 第一次生成标题（基于助手回答）
+					if isFirstMessage && !state.firstGenerated {
+						go func() {
+							state.mu.Lock()
+							if state.firstGenerated {
+								state.mu.Unlock()
+								return
+							}
+							state.firstGenerated = true
+							state.mu.Unlock()
+							
+							uc.generateTitle(req.ConversationID, assistantMsg.Content)
+						}()
+					}
+					
+					// 第二次更新标题（基于前 3 条助手回答）
+					if isThirdUserMessage && !state.secondGenerated {
+						go func() {
+							state.mu.Lock()
+							if state.secondGenerated {
+								state.mu.Unlock()
+								return
+							}
+							state.secondGenerated = true
+							state.mu.Unlock()
+							
+							uc.updateTitle(req.ConversationID)
+						}()
+					}
+				}
 			}
 		}
 	}()
@@ -301,7 +317,7 @@ func (uc *ChatUseCase) generateTitle(conversationID string, firstUserMessage str
 	}
 }
 
-// updateTitle 更新标题（基于前3条用户消息，生成任务型标题）
+// updateTitle 更新标题（基于前3条助手回答，生成任务型标题）
 func (uc *ChatUseCase) updateTitle(conversationID string) {
 	// 获取当前配置，动态创建 Provider
 	config, err := uc.configUse.GetActiveConfig()
@@ -323,20 +339,20 @@ func (uc *ChatUseCase) updateTitle(conversationID string) {
 		return
 	}
 
-	// 收集前 3 条用户消息
-	userMessages := []string{}
+	// 收集前 3 条助手回答
+	assistantMessages := []string{}
 	for _, msg := range messages {
-		if msg.Role == "user" && len(userMessages) < 3 {
-			userMessages = append(userMessages, msg.Content)
+		if msg.Role == "assistant" && len(assistantMessages) < 3 {
+			assistantMessages = append(assistantMessages, msg.Content)
 		}
 	}
 
-	if len(userMessages) == 0 {
+	if len(assistantMessages) == 0 {
 		return
 	}
 
 	// 拼接上下文
-	context := strings.Join(userMessages, "\n")
+	context := strings.Join(assistantMessages, "\n")
 
 	title, err := agent.GenerateTitle(context)
 	if err != nil {

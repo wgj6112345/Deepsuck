@@ -21,9 +21,11 @@
         :key="conversationStore.currentConversationId"
         :disabled="loading"
         :show-scroll-button="showScrollButton"
+        :thinking-enabled="thinkingEnabled"
         @send="handleSendMessage"
         @stop="handleStop"
         @scroll-to-bottom="scrollToBottom"
+        @toggle-thinking="handleToggleThinking"
       />
     </div>
   </div>
@@ -44,6 +46,7 @@ const conversationStore = useConversationStore()
 const uiStore = useUIStore()
 
 const loading = ref(false)
+const thinkingEnabled = ref(false)
 let abortController: AbortController | null = null
 
 const currentConversation = computed(() => conversationStore.currentConversation)
@@ -169,7 +172,7 @@ async function handleDeleteConversation(id: string) {
   }
 }
 
-async function handleSendMessage(content: string) {
+async function handleSendMessage(content: string, enabled: boolean) {
   if (!currentConversation.value) {
     await handleNewChat()
     return
@@ -198,7 +201,7 @@ async function handleSendMessage(content: string) {
     role: 'assistant',
     content: '',
     thinking: '',
-    thinkingEnabled: uiStore.thinkingEnabled,
+    thinkingEnabled: enabled,
     timestamp: new Date().toISOString()
   }
   conversationStore.addMessage(convId, assistantMsg)
@@ -207,7 +210,7 @@ async function handleSendMessage(content: string) {
     for await (const event of streamChat({
       conversationId: convId,
       content,
-      thinkingEnabled: uiStore.thinkingEnabled
+      thinkingEnabled: enabled
     }, abortController.signal)) {
       if (event.event === 'thinking') {
         conversationStore.updateMessage(convId, assistantMsg.id, {
@@ -240,6 +243,10 @@ async function handleSendMessage(content: string) {
     loading.value = false
     abortController = null
   }
+}
+
+function handleToggleThinking(enabled: boolean) {
+  thinkingEnabled.value = enabled
 }
 
 function handleStop() {

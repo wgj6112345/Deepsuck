@@ -11,7 +11,12 @@
       />
       <div class="input-actions">
         <div class="left-actions">
-          <button class="feature-button" title="深度思考">
+          <button
+            class="feature-button"
+            :class="{ active: thinkingEnabled }"
+            title="深度思考"
+            @click="toggleThinking"
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -70,19 +75,29 @@ import { ref, computed, watch, nextTick } from 'vue'
 const props = defineProps<{
   disabled?: boolean
   showScrollButton?: boolean
+  thinkingEnabled?: boolean
 }>()
 
 const emit = defineEmits<{
-  send: [content: string]
+  send: [content: string, thinkingEnabled: boolean]
   stop: []
   scrollToBottom: []
+  toggleThinking: [enabled: boolean]
 }>()
 
 const inputContent = ref('')
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const internalThinkingEnabled = ref(props.thinkingEnabled ?? false)
 
 const canSend = computed(() => {
   return inputContent.value.trim().length > 0 && inputContent.value.length <= 4096
+})
+
+// 监听 props 的变化
+watch(() => props.thinkingEnabled, (newVal) => {
+  if (newVal !== undefined) {
+    internalThinkingEnabled.value = newVal
+  }
 })
 
 // 自动调整 textarea 高度
@@ -120,7 +135,7 @@ function handleClick() {
 function handleSend() {
   if (!canSend.value) return
   
-  emit('send', inputContent.value)
+  emit('send', inputContent.value, internalThinkingEnabled.value)
   inputContent.value = ''
   
   // 重置 textarea 高度
@@ -129,6 +144,11 @@ function handleSend() {
       textareaRef.value.style.height = 'auto'
     }
   })
+}
+
+function toggleThinking() {
+  internalThinkingEnabled.value = !internalThinkingEnabled.value
+  emit('toggleThinking', internalThinkingEnabled.value)
 }
 </script>
 
@@ -221,6 +241,12 @@ function handleSend() {
 
 .feature-button:hover {
   background-color: #F5F5F5;
+}
+
+.feature-button.active {
+  background-color: #E6F7FF;
+  border-color: #1890FF;
+  color: #1890FF;
 }
 
 .feature-button svg {
