@@ -1,15 +1,11 @@
 package usecase
 
 import (
-	"bufio"
-	"bytes"
 	"deepsuck/backend/domain"
+	"deepsuck/backend/provider"
 	"deepsuck/backend/repository"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -70,7 +66,7 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 		}
 
 		// 获取配置
-		config, err := uc.configUse.GetConfig()
+		config, err := uc.configUse.GetActiveConfig()
 		if err != nil {
 			errChan <- fmt.Errorf("failed to get config: %w", err)
 			return
@@ -172,121 +168,39 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 			}
 		}
 
-		// 构建请求体
-		messages := []map[string]interface{}{}
-		if conversation != nil {
-			for _, msg := range conversation.Messages {
-				messages = append(messages, map[string]interface{}{
-					"role":    msg.Role,
-					"content": msg.Content,
-				})
-			}
+		// 使用 Agent Provider 发送消息
+		// 动态创建 Provider（根据当前激活的配置）
+		agent, err := provider.NewProvider(config.ProviderType, config)
+		if err != nil {
+			errChan <- fmt.Errorf("failed to create agent provider: %w", err)
+			return
 		}
-		messages = append(messages, map[string]interface{}{
-			"role":    "user",
-			"content": req.Content,
+
+		messages := []domain.Message{}
+		if conversation != nil {
+			messages = conversation.Messages
+		}
+		messages = append(messages, domain.Message{
+			Role:    "user",
+			Content: req.Content,
 		})
 
-		requestBody := map[string]interface{}{
-			"model":       config.ModelName,
-			"messages":    messages,
-			"stream":      true,
-			"temperature": 0.7,
-			"top_p":       0.95,
-			"max_tokens":  4096,
+		agentReq := &domain.AgentRequest{
+			Messages:        messages,
+			ThinkingEnabled: req.ThinkingEnabled,
+			Temperature:     0.7,
+			MaxTokens:       4096,
 		}
 
-		// Mimo API 的思考模式参数
-		if req.ThinkingEnabled {
-			requestBody["extra_body"] = map[string]interface{}{
-				"thinking": map[string]interface{}{
-					"type": "enabled",
-				},
-			}
-		}
-
-		jsonBody, err := json.Marshal(requestBody)
-		if err != nil {
-			errChan <- fmt.Errorf("failed to marshal request: %w", err)
-			return
-		}
-
-		log.Printf("Request body: %s", string(jsonBody))
-
-		// 发送请求到 Agent API
-		apiURL := config.BaseURL
-		// 确保 Base URL 以 /v1 结尾或包含 /v1
-		if !strings.Contains(apiURL, "/v1") {
-			if !strings.HasSuffix(apiURL, "/") {
-				apiURL += "/"
-			}
-			apiURL += "v1"
-		}
-		if !strings.HasSuffix(apiURL, "/") {
-			apiURL += "/"
-		}
-		apiURL += "chat/completions"
-
-		log.Printf("Requesting API URL: %s", apiURL)
-
-		httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
-		if err != nil {
-			errChan <- fmt.Errorf("failed to create request: %w", err)
-			return
-		}
-
-		httpReq.Header.Set("Content-Type", "application/json")
-		httpReq.Header.Set("Authorization", "Bearer "+config.APIKey)
-
-		client := &http.Client{}
-		resp, err := client.Do(httpReq)
-		if err != nil {
-			errChan <- fmt.Errorf("failed to send request: %w", err)
-			return
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			errChan <- fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
-			return
-		}
+		chunkChan, agentErrChan := agent.SendMessage(agentReq)
 
 		// 处理流式响应
-		scanner := bufio.NewScanner(resp.Body)
 		var assistantMsg *domain.Message
 		var fullThinking strings.Builder
 		var fullContent strings.Builder
 
-		for scanner.Scan() {
-			line := scanner.Text()
-			if !strings.HasPrefix(line, "data: ") {
-				continue
-			}
-
-			data := strings.TrimPrefix(line, "data: ")
-			if data == "[DONE]" {
-				break
-			}
-
-			var chunk map[string]interface{}
-			if err := json.Unmarshal([]byte(data), &chunk); err != nil {
-				continue
-			}
-
-			choices, ok := chunk["choices"].([]interface{})
-			if !ok || len(choices) == 0 {
-				continue
-			}
-
-			choice := choices[0].(map[string]interface{})
-			delta, ok := choice["delta"].(map[string]interface{})
-			if !ok {
-				continue
-			}
-
-			// 处理思考内容
-			if thinking, ok := delta["thinking"].(string); ok && thinking != "" {
+		for chunk := range chunkChan {
+			if chunk.Type == "thinking" {
 				if assistantMsg == nil {
 					assistantMsg = &domain.Message{
 						ID:              fmt.Sprintf("msg-%d", time.Now().UnixNano()),
@@ -296,15 +210,12 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 						Timestamp:       time.Now(),
 					}
 				}
-				fullThinking.WriteString(thinking)
+				fullThinking.WriteString(chunk.Content)
 				eventChan <- SSEEvent{
 					Event: "thinking",
-					Data:  thinking,
+					Data:  chunk.Content,
 				}
-			}
-
-			// 处理回答内容
-			if content, ok := delta["content"].(string); ok && content != "" {
+			} else if chunk.Type == "content" {
 				if assistantMsg == nil {
 					assistantMsg = &domain.Message{
 						ID:              fmt.Sprintf("msg-%d", time.Now().UnixNano()),
@@ -314,37 +225,20 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 						Timestamp:       time.Now(),
 					}
 				}
-
-				handleContent := strings.Replace(content, `\n\n`, `<br>`, -1)
+				handleContent := strings.Replace(chunk.Content, `\n\n`, `<br>`, -1)
 				fullContent.WriteString(handleContent)
 				eventChan <- SSEEvent{
 					Event: "content",
-					Data:  content,
+					Data:  chunk.Content,
 				}
-			}
-
-			finishReason, ok := choice["finish_reason"].(string)
-			if ok && finishReason == "stop" {
+			} else if chunk.Type == "done" {
 				break
 			}
 		}
 
-		if assistantMsg != nil {
-			assistantMsg.Thinking = fullThinking.String()
-			assistantMsg.Content = fullContent.String()
-			if err := uc.msgRepo.Create(assistantMsg); err != nil {
-				errChan <- fmt.Errorf("failed to create assistant message: %w", err)
-				return
-			}
-
-			eventChan <- SSEEvent{
-				Event: "done",
-				Data:  assistantMsg.ID,
-			}
-		}
-
-		if err := scanner.Err(); err != nil {
-			errChan <- fmt.Errorf("error reading stream: %w", err)
+		// 检查 Agent 错误
+		if err := <-agentErrChan; err != nil {
+			errChan <- err
 			return
 		}
 
@@ -367,101 +261,24 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 
 // generateTitle 生成初始标题（基于第一条用户消息）
 func (uc *ChatUseCase) generateTitle(conversationID string, firstUserMessage string) {
-	config, err := uc.configUse.GetConfig()
+	// 获取当前配置，动态创建 Provider
+	config, err := uc.configUse.GetActiveConfig()
 	if err != nil {
 		log.Printf("Failed to get config for title generation: %v", err)
 		return
 	}
 
-	if config.APIKey == "" {
-		log.Println("API Key not configured for title generation")
-		return
-	}
-
-	// 构建 Prompt
-	prompt := fmt.Sprintf("请根据以下对话内容生成一个简短的标题（10-20个字）：\n%s\n\n要求：\n1. 简洁明了\n2. 概括核心主题\n3. 不要包含标点符号", firstUserMessage)
-
-	requestBody := map[string]interface{}{
-		"model": config.ModelName,
-		"messages": []map[string]interface{}{
-			{
-				"role":    "user",
-				"content": prompt,
-			},
-		},
-		"temperature": 0.3,
-		"max_tokens":  50,
-	}
-
-	jsonBody, err := json.Marshal(requestBody)
+	agent, err := provider.NewProvider(config.ProviderType, config)
 	if err != nil {
-		log.Printf("Failed to marshal title generation request: %v", err)
+		log.Printf("Failed to create agent provider for title generation: %v", err)
 		return
 	}
 
-	// 发送请求
-	apiURL := config.BaseURL
-	if !strings.Contains(apiURL, "/v1") {
-		if !strings.HasSuffix(apiURL, "/") {
-			apiURL += "/"
-		}
-		apiURL += "v1"
-	}
-	if !strings.HasSuffix(apiURL, "/") {
-		apiURL += "/"
-	}
-	apiURL += "chat/completions"
-
-	httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
+	title, err := agent.GenerateTitle(firstUserMessage)
 	if err != nil {
-		log.Printf("Failed to create title generation request: %v", err)
+		log.Printf("Failed to generate title: %v", err)
 		return
 	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+config.APIKey)
-
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		log.Printf("Failed to send title generation request: %v", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		log.Printf("Title generation request failed with status %d: %s", resp.StatusCode, string(body))
-		return
-	}
-
-	var result map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		log.Printf("Failed to decode title generation response: %v", err)
-		return
-	}
-
-	// 提取生成的标题
-	choices, ok := result["choices"].([]interface{})
-	if !ok || len(choices) == 0 {
-		return
-	}
-
-	choice := choices[0].(map[string]interface{})
-	message, ok := choice["message"].(map[string]interface{})
-	if !ok {
-		return
-	}
-
-	title, ok := message["content"].(string)
-	if !ok {
-		return
-	}
-
-	// 清理标题（去除空白字符和标点）
-	title = strings.TrimSpace(title)
-	title = strings.ReplaceAll(title, "\n", "")
-	title = strings.ReplaceAll(title, "\r", "")
 
 	// 更新对话标题
 	if err := uc.convRepo.UpdateTitle(conversationID, title); err != nil {
@@ -486,14 +303,16 @@ func (uc *ChatUseCase) generateTitle(conversationID string, firstUserMessage str
 
 // updateTitle 更新标题（基于前3条用户消息，生成任务型标题）
 func (uc *ChatUseCase) updateTitle(conversationID string) {
-	config, err := uc.configUse.GetConfig()
+	// 获取当前配置，动态创建 Provider
+	config, err := uc.configUse.GetActiveConfig()
 	if err != nil {
 		log.Printf("Failed to get config for title update: %v", err)
 		return
 	}
 
-	if config.APIKey == "" {
-		log.Println("API Key not configured for title update")
+	agent, err := provider.NewProvider(config.ProviderType, config)
+	if err != nil {
+		log.Printf("Failed to create agent provider for title update: %v", err)
 		return
 	}
 
@@ -519,90 +338,11 @@ func (uc *ChatUseCase) updateTitle(conversationID string) {
 	// 拼接上下文
 	context := strings.Join(userMessages, "\n")
 
-	// 构建 Prompt（任务型标题）
-	prompt := fmt.Sprintf("请根据以下用户消息，生成一个\"任务型标题\"（10-20个字）：\n%s\n\n要求：\n1. 反映用户想要完成的任务\n2. 简洁明了\n3. 不要包含标点符号", context)
-
-	requestBody := map[string]interface{}{
-		"model": config.ModelName,
-		"messages": []map[string]interface{}{
-			{
-				"role":    "user",
-				"content": prompt,
-			},
-		},
-		"temperature": 0.3,
-		"max_tokens":  50,
-	}
-
-	jsonBody, err := json.Marshal(requestBody)
+	title, err := agent.GenerateTitle(context)
 	if err != nil {
-		log.Printf("Failed to marshal title update request: %v", err)
+		log.Printf("Failed to update title: %v", err)
 		return
 	}
-
-	// 发送请求
-	apiURL := config.BaseURL
-	if !strings.Contains(apiURL, "/v1") {
-		if !strings.HasSuffix(apiURL, "/") {
-			apiURL += "/"
-		}
-		apiURL += "v1"
-	}
-	if !strings.HasSuffix(apiURL, "/") {
-		apiURL += "/"
-	}
-	apiURL += "chat/completions"
-
-	httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		log.Printf("Failed to create title update request: %v", err)
-		return
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+config.APIKey)
-
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		log.Printf("Failed to send title update request: %v", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		log.Printf("Title update request failed with status %d: %s", resp.StatusCode, string(body))
-		return
-	}
-
-	var result map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		log.Printf("Failed to decode title update response: %v", err)
-		return
-	}
-
-	// 提取生成的标题
-	choices, ok := result["choices"].([]interface{})
-	if !ok || len(choices) == 0 {
-		return
-	}
-
-	choice := choices[0].(map[string]interface{})
-	message, ok := choice["message"].(map[string]interface{})
-	if !ok {
-		return
-	}
-
-	title, ok := message["content"].(string)
-	if !ok {
-		return
-	}
-
-	// 清理标题（去除空白字符和标点）
-	title = strings.TrimSpace(title)
-	title = strings.ReplaceAll(title, "\n", "")
-	title = strings.ReplaceAll(title, "\r", "")
 
 	// 更新对话标题
 	if err := uc.convRepo.UpdateTitle(conversationID, title); err != nil {

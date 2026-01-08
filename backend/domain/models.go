@@ -25,7 +25,8 @@ type Message struct {
 
 // AgentConfig Agent 配置实体
 type AgentConfig struct {
-	APIKey    string `json:"apiKey"`
-	ModelName string `json:"modelName"`
-	BaseURL   string `json:"baseUrl"`
+	ProviderType string `json:"providerType"` // "mimo" | "openai" | "claude"
+	APIKey       string `json:"apiKey"`
+	ModelName    string `json:"modelName"`
+	BaseURL      string `json:"baseUrl"`
 }

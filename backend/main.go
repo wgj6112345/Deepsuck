@@ -40,6 +40,18 @@ func main() {
 	// 初始化 UseCase
 	configUse := usecase.NewConfigUseCase(configRepo)
 	convUse := usecase.NewConversationUseCase(convRepo, msgRepo)
+
+	// 获取配置并创建 Agent Provider
+	config, err := configUse.GetActiveConfig()
+	if err != nil {
+		log.Fatalf("Failed to get active config: %v", err)
+	}
+
+	// 如果没有配置 ProviderType，默认使用 mimo
+	if config.ProviderType == "" {
+		config.ProviderType = "mimo"
+	}
+
 	chatUse := usecase.NewChatUseCase(convRepo, msgRepo, configUse)
 
 	// 初始化 Handler
@@ -81,12 +93,42 @@ func main() {
 
 	http.HandleFunc("/api/chat", middleware.CORS(chatHandler.SendMessage))
 
-	http.HandleFunc("/api/config", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {
+	// 配置路由 - 新版多 Provider 配置
+	http.HandleFunc("/api/config/active", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			configHandler.GetConfig(w, r)
+			configHandler.GetActiveConfig(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
+	http.HandleFunc("/api/config/providers", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			configHandler.GetAllProviders(w, r)
 		case http.MethodPut:
-			configHandler.UpdateConfig(w, r)
+			configHandler.SaveProviderConfig(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
+	http.HandleFunc("/api/config/providers/", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			configHandler.GetProviderConfig(w, r)
+		case http.MethodPut:
+			configHandler.SaveProviderConfig(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
+	http.HandleFunc("/api/config/activate", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			configHandler.ActivateProvider(w, r)
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
@@ -140,7 +182,7 @@ func createTables(db *sql.DB) error {
 		return fmt.Errorf("failed to create messages table: %w", err)
 	}
 
-	// 创建 config 表
+	// 创建 config 表（用于存储 activeProvider 等全局配置）
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS config (
 			key TEXT PRIMARY KEY,
@@ -149,6 +191,21 @@ func createTables(db *sql.DB) error {
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to create config table: %w", err)
+	}
+
+	// 创建 provider_configs 表（存储多个 Provider 的配置）
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS provider_configs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			provider_type TEXT UNIQUE NOT NULL,
+			api_key TEXT,
+			model_name TEXT NOT NULL,
+			base_url TEXT NOT NULL,
+			enabled BOOLEAN DEFAULT 0
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create provider_configs table: %w", err)
 	}
 
 	return nil
