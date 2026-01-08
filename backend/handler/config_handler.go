@@ -38,8 +38,9 @@ type ProviderConfigResponseData struct {
 }
 
 type AllProvidersResponse struct {
-	Success   bool                          `json:"success"`
-	Providers  []*ProviderConfigResponseData `json:"providers"`
+	Success         bool                          `json:"success"`
+	Providers       []*ProviderConfigResponseData `json:"providers"`
+	ActiveProvider  string                        `json:"activeProvider"`
 }
 
 // GetActiveConfig 获取当前激活的 Provider 配置
@@ -80,9 +81,17 @@ func (h *ConfigHandler) GetAllProviders(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// 获取当前激活的 Provider
+	activeConfig, _ := h.configUse.GetActiveConfig()
+	activeProviderType := ""
+	if activeConfig != nil {
+		activeProviderType = activeConfig.ProviderType
+	}
+
 	response := AllProvidersResponse{
 		Success:  true,
 		Providers: make([]*ProviderConfigResponseData, 0),
+		ActiveProvider: activeProviderType,
 	}
 
 	for _, p := range providers {

@@ -10,6 +10,12 @@ export interface ProviderConfig {
   enabled: boolean
 }
 
+export interface ProvidersResponse {
+  success: boolean
+  providers: ProviderConfig[]
+  activeProvider: string
+}
+
 export const configAPI = {
   async getConfig(): Promise<AgentConfig> {
     const response = await client.get('/api/config')
@@ -21,7 +27,7 @@ export const configAPI = {
     return response.data
   },
 
-  async getAllProviders(): Promise<{ success: boolean; providers: ProviderConfig[] }> {
+  async getAllProviders(): Promise<ProvidersResponse> {
     const response = await client.get('/api/config/providers')
     return response.data
   },

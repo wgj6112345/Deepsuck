@@ -15,7 +15,10 @@
           v-for="provider in providers"
           :key="provider.providerType"
           class="provider-card"
-          :class="{ active: provider.enabled, editing: editingProvider === provider.providerType }"
+          :class="{ 
+            selected: selectedProvider === provider.providerType, 
+            editing: editingProvider === provider.providerType 
+          }"
           @click="handleCardClick(provider)"
         >
           <div class="provider-header">
@@ -27,7 +30,7 @@
             <div class="provider-info">
               <h3 class="provider-name">{{ getProviderName(provider.providerType) }}</h3>
               <p class="provider-status">
-                <span v-if="provider.enabled" class="status-badge active">已激活</span>
+                <span v-if="activeProvider === provider.providerType" class="status-badge active">已激活</span>
                 <span v-else class="status-badge">未激活</span>
               </p>
             </div>
@@ -68,7 +71,7 @@
           </div>
 
           <div v-else class="provider-actions">
-            <button class="action-btn" @click.stop="activateProvider(provider.providerType)" :disabled="provider.enabled">
+            <button class="action-btn" @click.stop="activateProvider(provider.providerType)" :disabled="activeProvider === provider.providerType">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
                 <line x1="12" y1="2" x2="12" y2="12"/>
@@ -95,6 +98,8 @@ import { configAPI, type ProviderConfig } from '../api/config'
 
 const providers = ref<ProviderConfig[]>([])
 const editingProvider = ref<string | null>(null)
+const selectedProvider = ref<string | null>(null)
+const activeProvider = ref<string>('')
 const loading = ref(false)
 
 onMounted(async () => {
@@ -106,6 +111,7 @@ async function loadProviders() {
     loading.value = true
     const response = await configAPI.getAllProviders()
     providers.value = response.providers
+    activeProvider.value = response.activeProvider
   } catch (error) {
     console.error('Failed to load providers:', error)
   } finally {
@@ -124,7 +130,7 @@ function getProviderName(type: string): string {
 }
 
 function handleCardClick(provider: ProviderConfig) {
-  // 点击卡片不直接激活，需要点击激活按钮
+  selectedProvider.value = provider.providerType
 }
 
 function editProvider(providerType: string) {
@@ -155,6 +161,7 @@ async function activateProvider(providerType: string) {
   try {
     loading.value = true
     await configAPI.activateProvider(providerType)
+    activeProvider.value = providerType
     alert('已激活 ' + getProviderName(providerType))
     await loadProviders()
   } catch (error) {
@@ -244,7 +251,7 @@ async function activateProvider(providerType: string) {
   box-shadow: 0 4px 12px rgba(74, 108, 247, 0.1);
 }
 
-.provider-card.active {
+.provider-card.selected {
   border-color: #4A6CF7;
   background-color: #EFF6FF;
 }
