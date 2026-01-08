@@ -9,7 +9,7 @@
       </div>
       <div class="message-text">
         <!-- 如果是 assistant 且 content 为空，显示思考中提示 -->
-        <div v-if="message.role === 'assistant' && !message.content && !message.thinking" class="thinking-indicator">
+        <div v-if="message.role === 'assistant' && !message.content && (!message.thinking || !message.thinkingEnabled)" class="thinking-indicator">
           <span class="thinking-text">正在思考中</span>
           <div class="thinking-dots">
             <span class="dot"></span>
