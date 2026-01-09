@@ -153,13 +153,14 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 		}
 
 		chunkChan, agentErrChan := agent.SendMessage(agentReq)
-		
-				// 处理流式响应
-				var assistantMsg *domain.Message
-				var fullThinking strings.Builder
-				var fullContent strings.Builder
-		
-				ProcessLoop:		for chunk := range chunkChan {
+
+		// 处理流式响应
+		var assistantMsg *domain.Message
+		var fullThinking strings.Builder
+		var fullContent strings.Builder
+
+	ProcessLoop:
+		for chunk := range chunkChan {
 			// 检查 Context 是否被取消
 			select {
 			case <-ctx.Done():
@@ -203,32 +204,32 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 				break
 			}
 		}
-		
-				// 检查 Agent 错误
-				if err := <-agentErrChan; err != nil {
-					log.Printf("Agent error detected: %v", err)
-					errChan <- err
-					return
-				}
-		
-				// 保存助手消息到数据库
-				if assistantMsg != nil {
-					assistantMsg.Thinking = fullThinking.String()
-					assistantMsg.Content = fullContent.String()
-					if err := uc.msgRepo.Create(assistantMsg); err != nil {
-						log.Printf("Failed to save assistant message: %v", err)
-					} else {
-						log.Printf("Saved assistant message: %s", assistantMsg.ID)
-						// 发送真实的消息 ID 给前端
-						// 检查 context 是否已取消
-						select {
-						case <-ctx.Done():
-							log.Printf("Context cancelled for conversation %s, skipping done event", req.ConversationID)
-						case eventChan <- SSEEvent{
-							Event: "done",
-							Data:  assistantMsg.ID,
-						}:
-							log.Printf("Done event sent successfully for conversation %s", req.ConversationID)
+
+		// 检查 Agent 错误
+		if err := <-agentErrChan; err != nil {
+			log.Printf("Agent error detected: %v", err)
+			errChan <- err
+			return
+		}
+
+		// 保存助手消息到数据库
+		if assistantMsg != nil {
+			assistantMsg.Thinking = fullThinking.String()
+			assistantMsg.Content = fullContent.String()
+			if err := uc.msgRepo.Create(assistantMsg); err != nil {
+				log.Printf("Failed to save assistant message: %v", err)
+			} else {
+				log.Printf("Saved assistant message: %s", assistantMsg.ID)
+				// 发送真实的消息 ID 给前端
+				// 检查 context 是否已取消
+				select {
+				case <-ctx.Done():
+					log.Printf("Context cancelled for conversation %s, skipping done event", req.ConversationID)
+				case eventChan <- SSEEvent{
+					Event: "done",
+					Data:  assistantMsg.ID,
+				}:
+					log.Printf("Done event sent successfully for conversation %s", req.ConversationID)
 				}
 			}
 		}
