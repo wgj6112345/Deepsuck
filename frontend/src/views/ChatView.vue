@@ -113,9 +113,11 @@ async function loadConversations() {
   try {
     conversationStore.setLoading(true)
     const conversations = await conversationAPI.getConversations()
+    console.log('Loaded conversations:', conversations)
     conversationStore.setConversations(conversations)
-  } catch {
-    // Error loading conversations
+    console.log('Current conversation after load:', currentConversation.value)
+  } catch (error) {
+    console.error('Error loading conversations:', error)
   } finally {
     conversationStore.setLoading(false)
   }
@@ -257,9 +259,10 @@ function handleStop() {
   // 调用 stop 接口通知后端取消 Agent 请求
   if (currentConversation.value) {
     stopChat(currentConversation.value.id)
-      .then(() => {
-        // 停止后重新加载对话列表，获取更新后的标题
-        return loadConversations()
+      .then(async () => {
+        // 停止后重新获取当前对话，获取更新后的标题
+        const updatedConv = await conversationAPI.getConversation(currentConversation.value.id)
+        conversationStore.updateConversation(updatedConv)
       })
       .catch(error => {
         console.error('Failed to stop chat:', error)
