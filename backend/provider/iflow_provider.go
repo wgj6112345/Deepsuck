@@ -89,7 +89,6 @@ func (p *IFlowProvider) SendMessage(req *domain.AgentRequest) (<-chan domain.Age
 		if err != nil {
 			// 检查是否是 Context 取消
 			if req.Context.Err() == context.Canceled {
-				log.Println("Agent request cancelled by context")
 				return
 			}
 			errChan <- fmt.Errorf("failed to send request: %w", err)
@@ -112,7 +111,6 @@ func (p *IFlowProvider) SendMessage(req *domain.AgentRequest) (<-chan domain.Age
 			select {
 			case <-req.Context.Done():
 				resp.Body.Close()
-				log.Println("Stream reading cancelled by context")
 				return
 			default:
 			}
@@ -186,7 +184,6 @@ func (p *IFlowProvider) SendMessage(req *domain.AgentRequest) (<-chan domain.Age
 		if err := scanner.Err(); err != nil {
 			// 检查是否是 Context 取消导致的错误
 			if req.Context.Err() == context.Canceled {
-				log.Println("Stream reading cancelled by context, not sending error")
 				return
 			}
 			errChan <- fmt.Errorf("error reading stream: %w", err)

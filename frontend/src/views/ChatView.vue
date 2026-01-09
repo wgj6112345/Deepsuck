@@ -113,9 +113,7 @@ async function loadConversations() {
   try {
     conversationStore.setLoading(true)
     const conversations = await conversationAPI.getConversations()
-    console.log('Loaded conversations:', conversations)
     conversationStore.setConversations(conversations)
-    console.log('Current conversation after load:', currentConversation.value)
   } catch (error) {
     console.error('Error loading conversations:', error)
   } finally {

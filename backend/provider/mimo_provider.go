@@ -68,7 +68,6 @@ func (p *MimoProvider) SendMessage(req *domain.AgentRequest) (<-chan domain.Agen
 		if err != nil {
 			// 检查是否是 Context 取消
 			if req.Context.Err() != nil {
-				log.Println("Mimo request cancelled by context")
 				return
 			}
 			errChan <- fmt.Errorf("failed to send request: %w", err)
@@ -226,7 +225,6 @@ func (p *MimoProvider) handleStreamResponse(body io.Reader, chunkChan chan<- dom
 		// 检查 Context 是否被取消
 		select {
 		case <-ctx.Done():
-			log.Println("Mimo stream reading cancelled by context in handleStreamResponse")
 			return nil
 		default:
 		}
@@ -290,7 +288,6 @@ func (p *MimoProvider) handleStreamResponse(body io.Reader, chunkChan chan<- dom
 	if err := scanner.Err(); err != nil {
 		// 检查是否是 Context 取消导致的错误
 		if ctx.Err() == context.Canceled {
-			log.Println("Mimo stream reading cancelled by context, not sending error")
 			return nil
 		}
 		return fmt.Errorf("error reading stream: %w", err)

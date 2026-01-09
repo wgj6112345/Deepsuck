@@ -154,7 +154,6 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 
 		chunkChan, agentErrChan := agent.SendMessage(agentReq)
 		
-				log.Println("Starting to process stream chunks...")
 				// 处理流式响应
 				var assistantMsg *domain.Message
 				var fullThinking strings.Builder
@@ -164,7 +163,7 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 			// 检查 Context 是否被取消
 			select {
 			case <-ctx.Done():
-				log.Println("Agent request cancelled by context")
+				log.Printf("Agent request cancelled for conversation %s", req.ConversationID)
 				// 跳出循环，继续保存已接收的内容
 				break ProcessLoop
 			default:
@@ -204,41 +203,36 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 				break
 			}
 		}
-		log.Println("Stream processing loop ended")
-
-		log.Println("Checking agent errors...")
-		// 检查 Agent 错误
-		if err := <-agentErrChan; err != nil {
-			log.Printf("Agent error detected: %v", err)
-			errChan <- err
-			return
-		}
-		log.Println("No agent errors, continuing...")
-
-		// 保存助手消息到数据库
-		if assistantMsg != nil {
-			assistantMsg.Thinking = fullThinking.String()
-			assistantMsg.Content = fullContent.String()
-			if err := uc.msgRepo.Create(assistantMsg); err != nil {
-				log.Printf("Failed to save assistant message: %v", err)
-			} else {
-				log.Printf("Saved assistant message: %s", assistantMsg.ID)
-				// 发送真实的消息 ID 给前端
-				log.Println("Sending done event...")
-				// 检查 context 是否已取消
-				select {
-				case <-ctx.Done():
-					log.Println("Context cancelled, skipping done event")
-				case eventChan <- SSEEvent{
-					Event: "done",
-					Data:  assistantMsg.ID,
-				}:
-					log.Println("Done event sent successfully")
+		
+				// 检查 Agent 错误
+				if err := <-agentErrChan; err != nil {
+					log.Printf("Agent error detected: %v", err)
+					errChan <- err
+					return
+				}
+		
+				// 保存助手消息到数据库
+				if assistantMsg != nil {
+					assistantMsg.Thinking = fullThinking.String()
+					assistantMsg.Content = fullContent.String()
+					if err := uc.msgRepo.Create(assistantMsg); err != nil {
+						log.Printf("Failed to save assistant message: %v", err)
+					} else {
+						log.Printf("Saved assistant message: %s", assistantMsg.ID)
+						// 发送真实的消息 ID 给前端
+						// 检查 context 是否已取消
+						select {
+						case <-ctx.Done():
+							log.Printf("Context cancelled for conversation %s, skipping done event", req.ConversationID)
+						case eventChan <- SSEEvent{
+							Event: "done",
+							Data:  assistantMsg.ID,
+						}:
+							log.Printf("Done event sent successfully for conversation %s", req.ConversationID)
 				}
 			}
 		}
 
-		log.Println("About to trigger title generation...")
 		// 触发标题生成（基于助手回答或用户消息）
 		var shouldWaitForTitle bool
 		if req.ConversationID != "" {
@@ -261,15 +255,11 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 				isThirdUserMessage = userMessageCount == 2
 			}
 
-			log.Printf("Title generation check: isFirstMessage=%v, isThirdUserMessage=%v, firstGenerated=%v, secondGenerated=%v, conversationMessages=%d",
-				isFirstMessage, isThirdUserMessage, state.firstGenerated, state.secondGenerated, len(conversation.Messages))
-
 			state.mu.Unlock()
 
 			// 第一次生成标题
 			if isFirstMessage && !state.firstGenerated {
 				shouldWaitForTitle = true
-				log.Printf("Triggering first title generation for conversation: %s", req.ConversationID)
 				go func() {
 					state.mu.Lock()
 					if state.firstGenerated {
@@ -291,7 +281,6 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 			// 第二次更新标题（基于前 3 条助手回答）
 			if isThirdUserMessage && !state.secondGenerated {
 				shouldWaitForTitle = true
-				log.Printf("Triggering second title update for conversation: %s", req.ConversationID)
 				go func() {
 					state.mu.Lock()
 					if state.secondGenerated {
