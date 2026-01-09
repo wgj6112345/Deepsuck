@@ -153,14 +153,14 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 		}
 
 		chunkChan, agentErrChan := agent.SendMessage(agentReq)
-
-		// 处理流式响应
-		var assistantMsg *domain.Message
-		var fullThinking strings.Builder
-		var fullContent strings.Builder
-
-	ProcessLoop:
-		for chunk := range chunkChan {
+		
+				log.Println("Starting to process stream chunks...")
+				// 处理流式响应
+				var assistantMsg *domain.Message
+				var fullThinking strings.Builder
+				var fullContent strings.Builder
+		
+				ProcessLoop:		for chunk := range chunkChan {
 			// 检查 Context 是否被取消
 			select {
 			case <-ctx.Done():
@@ -204,6 +204,7 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 				break
 			}
 		}
+		log.Println("Stream processing loop ended")
 
 		log.Println("Checking agent errors...")
 		// 检查 Agent 错误

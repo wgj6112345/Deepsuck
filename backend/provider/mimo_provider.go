@@ -226,6 +226,7 @@ func (p *MimoProvider) handleStreamResponse(body io.Reader, chunkChan chan<- dom
 		// 检查 Context 是否被取消
 		select {
 		case <-ctx.Done():
+			log.Println("Mimo stream reading cancelled by context in handleStreamResponse")
 			return nil
 		default:
 		}
