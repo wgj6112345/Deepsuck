@@ -224,13 +224,16 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 			} else {
 				log.Printf("Saved assistant message: %s", assistantMsg.ID)
 				// 发送真实的消息 ID 给前端
+				log.Println("Sending done event...")
 				eventChan <- SSEEvent{
 					Event: "done",
 					Data:  assistantMsg.ID,
 				}
+				log.Println("Done event sent successfully")
 			}
 		}
 
+		log.Println("About to trigger title generation...")
 		// 触发标题生成（基于助手回答或用户消息）
 		var shouldWaitForTitle bool
 		if req.ConversationID != "" {
