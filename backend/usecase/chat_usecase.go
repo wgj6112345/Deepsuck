@@ -205,11 +205,14 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 			}
 		}
 
+		log.Println("Checking agent errors...")
 		// 检查 Agent 错误
 		if err := <-agentErrChan; err != nil {
+			log.Printf("Agent error detected: %v", err)
 			errChan <- err
 			return
 		}
+		log.Println("No agent errors, continuing...")
 
 		// 保存助手消息到数据库
 		if assistantMsg != nil {
