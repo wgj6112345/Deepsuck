@@ -87,3 +87,13 @@ export async function* streamChat(request: ChatRequest, signal?: AbortSignal): A
     }
   }
 }
+
+export async function stopChat(conversationId: string): Promise<void> {
+  await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/chat/stop`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ conversationId }),
+  })
+}

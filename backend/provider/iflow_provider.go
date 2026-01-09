@@ -3,10 +3,12 @@ package provider
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"deepsuck/backend/domain"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -60,7 +62,6 @@ func (p *IFlowProvider) SendMessage(req *domain.AgentRequest) (<-chan domain.Age
 			return
 		}
 
-
 		// 构建 API URL
 		apiURL := p.baseURL
 		if !strings.Contains(apiURL, "/v1") {
@@ -74,8 +75,7 @@ func (p *IFlowProvider) SendMessage(req *domain.AgentRequest) (<-chan domain.Age
 		}
 		apiURL += "chat/completions"
 
-
-		httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
+		httpReq, err := http.NewRequestWithContext(req.Context, "POST", apiURL, bytes.NewBuffer(jsonBody))
 		if err != nil {
 			errChan <- fmt.Errorf("failed to create request: %w", err)
 			return
@@ -87,11 +87,15 @@ func (p *IFlowProvider) SendMessage(req *domain.AgentRequest) (<-chan domain.Age
 		client := &http.Client{}
 		resp, err := client.Do(httpReq)
 		if err != nil {
+			// 检查是否是 Context 取消
+			if req.Context.Err() == context.Canceled {
+				log.Println("Agent request cancelled by context")
+				return
+			}
 			errChan <- fmt.Errorf("failed to send request: %w", err)
 			return
 		}
 		defer resp.Body.Close()
-
 
 		if resp.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
@@ -104,16 +108,24 @@ func (p *IFlowProvider) SendMessage(req *domain.AgentRequest) (<-chan domain.Age
 		lineCount := 0
 		deltaCount := 0
 		for scanner.Scan() {
+			// 检查 Context 是否被取消
+			select {
+			case <-req.Context.Done():
+				resp.Body.Close()
+				log.Println("Stream reading cancelled by context")
+				return
+			default:
+			}
+
 			line := scanner.Text()
 			lineCount++
-			
+
 			if lineCount <= 5 {
 			}
-			
+
 			if !strings.HasPrefix(line, "data:") {
 				continue
 			}
-
 
 			data := strings.TrimPrefix(line, "data:")
 			// 移除可能的前导空格
@@ -122,12 +134,10 @@ func (p *IFlowProvider) SendMessage(req *domain.AgentRequest) (<-chan domain.Age
 				break
 			}
 
-
 			var chunk map[string]interface{}
 			if err := json.Unmarshal([]byte(data), &chunk); err != nil {
 				continue
 			}
-
 
 			choices, ok := chunk["choices"].([]interface{})
 			if !ok || len(choices) == 0 {
@@ -144,12 +154,12 @@ func (p *IFlowProvider) SendMessage(req *domain.AgentRequest) (<-chan domain.Age
 
 			// 处理思考内容（IFlow 使用 reasoning_content 字段）
 			if reasoningContent, ok := delta["reasoning_content"].(string); ok {
-			    if reasoningContent != "" {
-			        chunkChan <- domain.AgentChunk{
-			            Type:    "thinking",
-			            Content: reasoningContent,
-			        }
-			    }
+				if reasoningContent != "" {
+					chunkChan <- domain.AgentChunk{
+						Type:    "thinking",
+						Content: reasoningContent,
+					}
+				}
 			}
 			// 处理回答内容（IFlow 可能没有 content 字段，所有内容都在 reasoning_content 中）
 			if content, ok := delta["content"].(string); ok {
@@ -173,8 +183,12 @@ func (p *IFlowProvider) SendMessage(req *domain.AgentRequest) (<-chan domain.Age
 			}
 		}
 
-
 		if err := scanner.Err(); err != nil {
+			// 检查是否是 Context 取消导致的错误
+			if req.Context.Err() == context.Canceled {
+				log.Println("Stream reading cancelled by context, not sending error")
+				return
+			}
 			errChan <- fmt.Errorf("error reading stream: %w", err)
 			return
 		}
@@ -242,7 +256,6 @@ func (p *IFlowProvider) GenerateTitle(content string) (string, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", fmt.Errorf("failed to decode title generation response: %w", err)
 	}
-
 
 	// 提取生成的标题
 	choices, ok := result["choices"].([]interface{})

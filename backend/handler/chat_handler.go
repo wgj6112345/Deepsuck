@@ -16,6 +16,34 @@ func NewChatHandler(chatUse *usecase.ChatUseCase) *ChatHandler {
 	return &ChatHandler{chatUse: chatUse}
 }
 
+// StopChat 停止正在进行的 Agent 请求
+func (h *ChatHandler) StopChat(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		ConversationID string `json:"conversationId"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("Failed to decode stop request: %v", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Stopping chat: conversationId=%s", req.ConversationID)
+
+	// 调用 usecase 取消请求
+	h.chatUse.CancelRequest(req.ConversationID)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "success",
+	})
+}
+
 func (h *ChatHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

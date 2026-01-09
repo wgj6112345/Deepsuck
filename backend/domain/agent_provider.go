@@ -1,5 +1,7 @@
 package domain
 
+import "context"
+
 // ProviderConfig 单个 Provider 的配置
 type ProviderConfig struct {
 	ID         int64  `json:"id"`
@@ -30,6 +32,7 @@ type AgentRequest struct {
 	ThinkingEnabled bool     // 是否启用思考模式
 	Temperature    float64   // 温度参数
 	MaxTokens      int       // 最大 token 数
+	Context        context.Context // 用于取消请求的 Context
 }
 
 // AgentChunk Agent 响应片段

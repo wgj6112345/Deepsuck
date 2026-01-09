@@ -36,7 +36,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useConversationStore } from '../store/conversation'
 import { useUIStore } from '../store/ui'
 import { conversationAPI } from '../api/conversation'
-import { streamChat } from '../api/chat'
+import { streamChat, stopChat } from '../api/chat'
 import type { Message } from '../store/conversation'
 import MessageList from '../components/MessageList.vue'
 import ChatInput from '../components/ChatInput.vue'
@@ -252,6 +252,13 @@ function handleToggleThinking(enabled: boolean) {
 function handleStop() {
   if (abortController) {
     abortController.abort()
+  }
+
+  // 调用 stop 接口通知后端取消 Agent 请求
+  if (currentConversation.value) {
+    stopChat(currentConversation.value.id).catch(error => {
+      console.error('Failed to stop chat:', error)
+    })
   }
 }
 

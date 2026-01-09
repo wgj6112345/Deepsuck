@@ -92,6 +92,7 @@ func main() {
 	}))
 
 	http.HandleFunc("/api/chat", middleware.CORS(chatHandler.SendMessage))
+	http.HandleFunc("/api/chat/stop", middleware.CORS(chatHandler.StopChat))
 
 	// 配置路由 - 新版多 Provider 配置
 	http.HandleFunc("/api/config/active", middleware.CORS(func(w http.ResponseWriter, r *http.Request) {

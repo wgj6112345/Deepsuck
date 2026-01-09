@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"deepsuck/backend/domain"
 	"deepsuck/backend/provider"
 	"deepsuck/backend/repository"
@@ -12,11 +13,12 @@ import (
 )
 
 type ChatUseCase struct {
-	convRepo  repository.ConversationRepository
-	msgRepo   repository.MessageRepository
-	configUse *ConfigUseCase
-	titleGen  *sync.Map // 用于跟踪标题生成状态: conversationID -> titleState
-	titleChan *sync.Map // 用于标题更新事件: conversationID -> chan string
+	convRepo       repository.ConversationRepository
+	msgRepo        repository.MessageRepository
+	configUse      *ConfigUseCase
+	titleGen       *sync.Map // 用于跟踪标题生成状态: conversationID -> titleState
+	titleChan      *sync.Map // 用于标题更新事件: conversationID -> chan string
+	activeRequests *sync.Map // 用于存储活跃请求的 CancelFunc: conversationID -> context.CancelFunc
 }
 
 type titleState struct {
@@ -42,11 +44,12 @@ func NewChatUseCase(
 	configUse *ConfigUseCase,
 ) *ChatUseCase {
 	return &ChatUseCase{
-		convRepo:  convRepo,
-		msgRepo:   msgRepo,
-		configUse: configUse,
-		titleGen:  &sync.Map{},
-		titleChan: &sync.Map{},
+		convRepo:       convRepo,
+		msgRepo:        msgRepo,
+		configUse:      configUse,
+		titleGen:       &sync.Map{},
+		titleChan:      &sync.Map{},
+		activeRequests: &sync.Map{},
 	}
 }
 
@@ -57,6 +60,15 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 	go func() {
 		defer close(eventChan)
 		defer close(errChan)
+
+		// 创建带取消功能的 Context
+		ctx, cancel := context.WithCancel(context.Background())
+
+		// 注册 CancelFunc 到 activeRequests
+		if req.ConversationID != "" {
+			uc.activeRequests.Store(req.ConversationID, cancel)
+			defer uc.activeRequests.Delete(req.ConversationID)
+		}
 
 		// 创建标题更新 channel
 		titleUpdateChan := make(chan string, 2)
@@ -137,6 +149,7 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 			ThinkingEnabled: req.ThinkingEnabled,
 			Temperature:     0.7,
 			MaxTokens:       4096,
+			Context:         ctx,
 		}
 
 		chunkChan, agentErrChan := agent.SendMessage(agentReq)
@@ -146,7 +159,17 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 		var fullThinking strings.Builder
 		var fullContent strings.Builder
 
+	ProcessLoop:
 		for chunk := range chunkChan {
+			// 检查 Context 是否被取消
+			select {
+			case <-ctx.Done():
+				log.Println("Agent request cancelled by context")
+				// 跳出循环，继续保存已接收的内容
+				break ProcessLoop
+			default:
+			}
+
 			if chunk.Type == "thinking" {
 				if assistantMsg == nil {
 					assistantMsg = &domain.Message{
@@ -187,7 +210,7 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 			errChan <- err
 			return
 		}
-		
+
 		// 保存助手消息到数据库
 		if assistantMsg != nil {
 			assistantMsg.Thinking = fullThinking.String()
@@ -201,16 +224,16 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 					Event: "done",
 					Data:  assistantMsg.ID,
 				}
-				
+
 				// 触发标题生成（基于助手回答）
 				if req.ConversationID != "" {
 					stateIface, _ := uc.titleGen.LoadOrStore(req.ConversationID, &titleState{})
 					state := stateIface.(*titleState)
 					state.mu.Lock()
-					
+
 					// 判断是否是第一条消息
 					isFirstMessage := conversation == nil || len(conversation.Messages) == 0
-					
+
 					// 判断是否是第 3 轮对话（第 3 条用户消息）
 					isThirdUserMessage := false
 					if conversation != nil {
@@ -222,9 +245,9 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 						}
 						isThirdUserMessage = userMessageCount == 2
 					}
-					
+
 					state.mu.Unlock()
-					
+
 					// 第一次生成标题（基于助手回答）
 					if isFirstMessage && !state.firstGenerated {
 						go func() {
@@ -235,11 +258,11 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 							}
 							state.firstGenerated = true
 							state.mu.Unlock()
-							
+
 							uc.generateTitle(req.ConversationID, assistantMsg.Content)
 						}()
 					}
-					
+
 					// 第二次更新标题（基于前 3 条助手回答）
 					if isThirdUserMessage && !state.secondGenerated {
 						go func() {
@@ -250,7 +273,7 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 							}
 							state.secondGenerated = true
 							state.mu.Unlock()
-							
+
 							uc.updateTitle(req.ConversationID)
 						}()
 					}
@@ -258,7 +281,7 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 			}
 		}
 
-		// 监听标题更新事件（最多等待 10 秒）
+		// 监听标题更新事件（最多等待 30 秒）
 		if req.ConversationID != "" {
 			select {
 			case title := <-titleUpdateChan:
@@ -266,7 +289,7 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 					Event: "title_update",
 					Data:  title,
 				}
-			case <-time.After(10 * time.Second):
+			case <-time.After(30 * time.Second):
 				// 超时，不等待标题更新
 			}
 		}
@@ -378,5 +401,18 @@ func (uc *ChatUseCase) updateTitle(conversationID string) {
 				// channel 已满或已关闭，忽略
 			}
 		}
+	}
+}
+
+// CancelRequest 取消正在进行的 Agent 请求
+func (uc *ChatUseCase) CancelRequest(conversationID string) {
+	log.Printf("Cancelling request for conversation: %s", conversationID)
+
+	if cancel, ok := uc.activeRequests.Load(conversationID); ok {
+		cancelFunc := cancel.(context.CancelFunc)
+		cancelFunc()
+		log.Printf("Request cancelled successfully: %s", conversationID)
+	} else {
+		log.Printf("No active request found for conversation: %s", conversationID)
 	}
 }

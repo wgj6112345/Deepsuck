@@ -3,6 +3,7 @@ package provider
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"deepsuck/backend/domain"
 	"encoding/json"
 	"fmt"
@@ -53,7 +54,7 @@ func (p *MimoProvider) SendMessage(req *domain.AgentRequest) (<-chan domain.Agen
 		log.Printf("MimoProvider Request URL: %s", apiURL)
 
 		// 发送 HTTP 请求
-		httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
+		httpReq, err := http.NewRequestWithContext(req.Context, "POST", apiURL, bytes.NewBuffer(jsonBody))
 		if err != nil {
 			errChan <- fmt.Errorf("failed to create request: %w", err)
 			return
@@ -65,6 +66,11 @@ func (p *MimoProvider) SendMessage(req *domain.AgentRequest) (<-chan domain.Agen
 		client := &http.Client{}
 		resp, err := client.Do(httpReq)
 		if err != nil {
+			// 检查是否是 Context 取消
+			if req.Context.Err() != nil {
+				log.Println("Mimo request cancelled by context")
+				return
+			}
 			errChan <- fmt.Errorf("failed to send request: %w", err)
 			return
 		}
@@ -77,7 +83,7 @@ func (p *MimoProvider) SendMessage(req *domain.AgentRequest) (<-chan domain.Agen
 		}
 
 		// 处理流式响应
-		if err := p.handleStreamResponse(resp.Body, chunkChan); err != nil {
+		if err := p.handleStreamResponse(resp.Body, chunkChan, req.Context); err != nil {
 			errChan <- fmt.Errorf("error reading stream: %w", err)
 			return
 		}
@@ -213,10 +219,17 @@ func (p *MimoProvider) buildRequestBody(req *domain.AgentRequest) map[string]int
 }
 
 // handleStreamResponse 处理流式响应
-func (p *MimoProvider) handleStreamResponse(body io.Reader, chunkChan chan<- domain.AgentChunk) error {
+func (p *MimoProvider) handleStreamResponse(body io.Reader, chunkChan chan<- domain.AgentChunk, ctx context.Context) error {
 	scanner := bufio.NewScanner(body)
 
 	for scanner.Scan() {
+		// 检查 Context 是否被取消
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+
 		line := scanner.Text()
 		if !strings.HasPrefix(line, "data: ") {
 			continue
@@ -273,5 +286,13 @@ func (p *MimoProvider) handleStreamResponse(body io.Reader, chunkChan chan<- dom
 		}
 	}
 
-	return scanner.Err()
+	if err := scanner.Err(); err != nil {
+		// 检查是否是 Context 取消导致的错误
+		if ctx.Err() == context.Canceled {
+			log.Println("Mimo stream reading cancelled by context, not sending error")
+			return nil
+		}
+		return fmt.Errorf("error reading stream: %w", err)
+	}
+	return nil
 }
