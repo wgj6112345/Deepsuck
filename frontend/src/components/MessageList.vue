@@ -128,4 +128,37 @@ function scrollToBottom() {
   font-size: 15px;
   color: #9CA3AF;
 }
+
+/* 移动端显示优化 */
+@media (max-width: 768px) {
+  .empty-state {
+    min-height: 300px;
+  }
+  
+  .empty-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+  }
+  
+  .empty-title {
+    font-size: 20px;
+    padding: 0 20px;
+  }
+  
+  .conversation-title {
+    font-size: 18px;
+    padding: 16px 16px 12px;
+    margin-bottom: 16px;
+  }
+  
+  .messages-container {
+    padding: 0 16px;
+  }
+  
+  .ai-disclaimer {
+    padding: 12px 16px 20px;
+    font-size: 13px;
+  }
+}
 </style>

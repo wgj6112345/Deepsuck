@@ -364,4 +364,79 @@ function toggleThinking() {
   width: 24px;
   height: 24px;
 }
+
+/* 移动端触摸适配 */
+@media (max-width: 768px) {
+  .chat-input-container {
+    padding: 12px 16px 24px;
+  }
+  
+  .input-wrapper {
+    padding: 16px;
+    border-radius: 16px;
+    gap: 16px;
+  }
+  
+  .input-field {
+    font-size: 16px;
+  }
+  
+  .input-actions {
+    gap: 8px;
+  }
+  
+  .left-actions {
+    gap: 6px;
+  }
+  
+  .right-actions {
+    gap: 6px;
+  }
+  
+  .feature-button {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .feature-button svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .attachment-button {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .attachment-button svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .send-button {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .send-icon {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .stop-icon {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .scroll-to-bottom-btn {
+    width: 44px;
+    height: 44px;
+    bottom: calc(100% + 16px);
+  }
+  
+  .scroll-to-bottom-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+}
 </style>

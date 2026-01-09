@@ -1,5 +1,12 @@
 <template>
-  <div class="sidebar" :class="{ closed: !open }">
+  <!-- 移动端遮罩层 -->
+  <div
+    v-if="isMobile && open"
+    class="sidebar-overlay"
+    @click="handleToggleSidebar"
+  ></div>
+  
+  <div class="sidebar" :class="{ closed: !open, mobile: isMobile && open }">
     <!-- 品牌区域 -->
     <div class="sidebar-header">
       <div class="brand-logo" @click="handleToggleSidebar" :class="{ 'clickable': !open }">
@@ -208,6 +215,24 @@ const titleInputRef = ref<HTMLInputElement | null>(null)
 const showDeleteDialog = ref(false)
 const deleteConversationId = ref<string | null>(null)
 
+// 移动端检测
+const isMobile = ref(false)
+
+function checkMobile() {
+  isMobile.value = window.innerWidth <= 768
+}
+
+onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
+  document.removeEventListener('click', handleClickOutside)
+})
+
 // 点击外部关闭菜单
 function handleClickOutside(event: MouseEvent) {
   const target = event.target as HTMLElement
@@ -401,6 +426,27 @@ function confirmDelete() {
 </script>
 
 <style scoped>
+/* 移动端遮罩层 */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .sidebar {
   width: 280px;
   min-width: 280px;
@@ -410,7 +456,7 @@ function confirmDelete() {
   border-right: 1px solid #E5E7EB;
   display: flex;
   flex-direction: column;
-  transition: width 0.3s ease;
+  transition: width 0.3s ease, transform 0.3s ease;
   flex-shrink: 0;
   position: fixed;
   top: 0;
@@ -425,6 +471,26 @@ function confirmDelete() {
   max-width: 56px;
   overflow: hidden;
   border-right: none;
+}
+
+/* 移动端抽屉式导航 */
+.sidebar.mobile {
+  transform: translateX(0);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .sidebar.mobile {
+    transform: translateX(0);
+  }
+  
+  .sidebar.closed {
+    transform: translateX(-100%);
+  }
 }
 
 .sidebar.closed .new-chat-section,

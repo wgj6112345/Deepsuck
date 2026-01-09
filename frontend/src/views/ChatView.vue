@@ -11,6 +11,15 @@
     />
     
     <div class="chat-content" :class="{ 'sidebar-closed': !uiStore.sidebarOpen }">
+      <!-- 移动端汉堡菜单按钮 -->
+      <button class="hamburger-menu" @click="handleToggleSidebar" title="打开菜单">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+      
       <MessageList 
         ref="messageListRef"
         :messages="currentMessages" 
@@ -293,9 +302,61 @@ function handleToggleSidebar() {
   width: 100%;
   padding-left: 280px;
   box-sizing: border-box;
+  position: relative;
 }
 
 .chat-content.sidebar-closed {
   padding-left: 56px;
+}
+
+/* 移动端汉堡菜单按钮 */
+.hamburger-menu {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  width: 44px;
+  height: 44px;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 50;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+}
+
+.hamburger-menu:hover {
+  background-color: #F3F4F6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.hamburger-menu:active {
+  transform: scale(0.95);
+}
+
+.hamburger-menu svg {
+  width: 20px;
+  height: 20px;
+  color: #1F2937;
+}
+
+/* 移动端样式 */
+@media (max-width: 768px) {
+  .chat-content {
+    padding-left: 0;
+  }
+  
+  .chat-content.sidebar-closed {
+    padding-left: 0;
+  }
+  
+  .hamburger-menu {
+    display: flex;
+    top: 12px;
+    left: 12px;
+  }
 }
 </style>
