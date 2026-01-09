@@ -256,9 +256,14 @@ function handleStop() {
 
   // 调用 stop 接口通知后端取消 Agent 请求
   if (currentConversation.value) {
-    stopChat(currentConversation.value.id).catch(error => {
-      console.error('Failed to stop chat:', error)
-    })
+    stopChat(currentConversation.value.id)
+      .then(() => {
+        // 停止后重新加载对话列表，获取更新后的标题
+        return loadConversations()
+      })
+      .catch(error => {
+        console.error('Failed to stop chat:', error)
+      })
   }
 }
 
