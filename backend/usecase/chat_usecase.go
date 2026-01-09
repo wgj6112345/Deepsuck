@@ -225,11 +225,16 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 				log.Printf("Saved assistant message: %s", assistantMsg.ID)
 				// 发送真实的消息 ID 给前端
 				log.Println("Sending done event...")
-				eventChan <- SSEEvent{
+				// 检查 context 是否已取消
+				select {
+				case <-ctx.Done():
+					log.Println("Context cancelled, skipping done event")
+				case eventChan <- SSEEvent{
 					Event: "done",
 					Data:  assistantMsg.ID,
+				}:
+					log.Println("Done event sent successfully")
 				}
-				log.Println("Done event sent successfully")
 			}
 		}
 
