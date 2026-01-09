@@ -155,7 +155,7 @@ function handleShare() {
   background-color: transparent;
   padding: 0;
   width: 100%;
-  max-width: 70%;
+  max-width: 100%;
 }
 
 .thinking-wrapper {
