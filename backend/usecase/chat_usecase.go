@@ -224,63 +224,68 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 					Event: "done",
 					Data:  assistantMsg.ID,
 				}
+			}
+		}
 
-				// 触发标题生成（基于助手回答）
-				var shouldWaitForTitle bool
-				if req.ConversationID != "" {
-					stateIface, _ := uc.titleGen.LoadOrStore(req.ConversationID, &titleState{})
-					state := stateIface.(*titleState)
-					state.mu.Lock()
+		// 触发标题生成（基于助手回答或用户消息）
+		var shouldWaitForTitle bool
+		if req.ConversationID != "" {
+			stateIface, _ := uc.titleGen.LoadOrStore(req.ConversationID, &titleState{})
+			state := stateIface.(*titleState)
+			state.mu.Lock()
 
-					// 判断是否是第一条消息
-					isFirstMessage := conversation == nil || len(conversation.Messages) == 0
+			// 判断是否是第一条消息
+			isFirstMessage := conversation == nil || len(conversation.Messages) == 0
 
-					// 判断是否是第 3 轮对话（第 3 条用户消息）
-					isThirdUserMessage := false
-					if conversation != nil {
-						userMessageCount := 0
-						for _, msg := range conversation.Messages {
-							if msg.Role == "user" {
-								userMessageCount++
-							}
-						}
-						isThirdUserMessage = userMessageCount == 2
-					}
-
-					state.mu.Unlock()
-
-					// 第一次生成标题（基于助手回答）
-					if isFirstMessage && !state.firstGenerated {
-						shouldWaitForTitle = true
-						go func() {
-							state.mu.Lock()
-							if state.firstGenerated {
-								state.mu.Unlock()
-								return
-							}
-							state.firstGenerated = true
-							state.mu.Unlock()
-
-							uc.generateTitle(req.ConversationID, assistantMsg.Content)
-						}()
-					}
-
-					// 第二次更新标题（基于前 3 条助手回答）
-					if isThirdUserMessage && !state.secondGenerated {
-						shouldWaitForTitle = true
-						go func() {
-							state.mu.Lock()
-							if state.secondGenerated {
-								state.mu.Unlock()
-								return
-							}
-							state.secondGenerated = true
-							state.mu.Unlock()
-
-							uc.updateTitle(req.ConversationID)
-						}()
+			// 判断是否是第 3 轮对话（第 3 条用户消息）
+			isThirdUserMessage := false
+			if conversation != nil {
+				userMessageCount := 0
+				for _, msg := range conversation.Messages {
+					if msg.Role == "user" {
+						userMessageCount++
 					}
 				}
+				isThirdUserMessage = userMessageCount == 2
+			}
+
+			state.mu.Unlock()
+
+			// 第一次生成标题
+			if isFirstMessage && !state.firstGenerated {
+				shouldWaitForTitle = true
+				go func() {
+					state.mu.Lock()
+					if state.firstGenerated {
+						state.mu.Unlock()
+						return
+					}
+					state.firstGenerated = true
+					state.mu.Unlock()
+
+					// 使用 fullContent 生成标题，如果为空则使用用户消息
+					titleContent := fullContent.String()
+					if titleContent == "" {
+						titleContent = req.Content
+					}
+					uc.generateTitle(req.ConversationID, titleContent)
+				}()
+			}
+
+			// 第二次更新标题（基于前 3 条助手回答）
+			if isThirdUserMessage && !state.secondGenerated {
+				shouldWaitForTitle = true
+				go func() {
+					state.mu.Lock()
+					if state.secondGenerated {
+						state.mu.Unlock()
+						return
+					}
+					state.secondGenerated = true
+					state.mu.Unlock()
+
+					uc.updateTitle(req.ConversationID)
+				}()
 			}
 		}
 
