@@ -226,6 +226,7 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 				}
 
 				// 触发标题生成（基于助手回答）
+				var shouldWaitForTitle bool
 				if req.ConversationID != "" {
 					stateIface, _ := uc.titleGen.LoadOrStore(req.ConversationID, &titleState{})
 					state := stateIface.(*titleState)
@@ -250,6 +251,7 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 
 					// 第一次生成标题（基于助手回答）
 					if isFirstMessage && !state.firstGenerated {
+						shouldWaitForTitle = true
 						go func() {
 							state.mu.Lock()
 							if state.firstGenerated {
@@ -265,6 +267,7 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 
 					// 第二次更新标题（基于前 3 条助手回答）
 					if isThirdUserMessage && !state.secondGenerated {
+						shouldWaitForTitle = true
 						go func() {
 							state.mu.Lock()
 							if state.secondGenerated {
@@ -281,8 +284,8 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 			}
 		}
 
-		// 监听标题更新事件（一直等待直到标题生成完成）
-		if req.ConversationID != "" {
+		// 监听标题更新事件（只在需要时等待）
+		if req.ConversationID != "" && shouldWaitForTitle {
 			// 等待标题更新，不设置超时
 			title := <-titleUpdateChan
 			eventChan <- SSEEvent{
