@@ -249,11 +249,15 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 				isThirdUserMessage = userMessageCount == 2
 			}
 
+			log.Printf("Title generation check: isFirstMessage=%v, isThirdUserMessage=%v, firstGenerated=%v, secondGenerated=%v, conversationMessages=%d",
+				isFirstMessage, isThirdUserMessage, state.firstGenerated, state.secondGenerated, len(conversation.Messages))
+
 			state.mu.Unlock()
 
 			// 第一次生成标题
 			if isFirstMessage && !state.firstGenerated {
 				shouldWaitForTitle = true
+				log.Printf("Triggering first title generation for conversation: %s", req.ConversationID)
 				go func() {
 					state.mu.Lock()
 					if state.firstGenerated {
@@ -275,6 +279,7 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 			// 第二次更新标题（基于前 3 条助手回答）
 			if isThirdUserMessage && !state.secondGenerated {
 				shouldWaitForTitle = true
+				log.Printf("Triggering second title update for conversation: %s", req.ConversationID)
 				go func() {
 					state.mu.Lock()
 					if state.secondGenerated {
