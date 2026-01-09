@@ -281,16 +281,13 @@ func (uc *ChatUseCase) SendMessage(req *ChatRequest) (<-chan SSEEvent, <-chan er
 			}
 		}
 
-		// 监听标题更新事件（最多等待 30 秒）
+		// 监听标题更新事件（一直等待直到标题生成完成）
 		if req.ConversationID != "" {
-			select {
-			case title := <-titleUpdateChan:
-				eventChan <- SSEEvent{
-					Event: "title_update",
-					Data:  title,
-				}
-			case <-time.After(30 * time.Second):
-				// 超时，不等待标题更新
+			// 等待标题更新，不设置超时
+			title := <-titleUpdateChan
+			eventChan <- SSEEvent{
+				Event: "title_update",
+				Data:  title,
 			}
 		}
 	}()
